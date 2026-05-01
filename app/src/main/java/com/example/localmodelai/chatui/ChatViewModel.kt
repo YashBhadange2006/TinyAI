@@ -21,7 +21,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     val messages = mutableStateListOf(
         Message(
-            "This app now downloads your hosted .task model on demand. Tap the model menu to download it, load it, and then chat locally on device.",
+            "This app now downloads your hosted MediaPipe .task model on demand. Tap the model menu to download it, load it, and then chat locally on device.",
             false
         )
     )
