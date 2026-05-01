@@ -4,6 +4,7 @@ import android.app.DownloadManager
 import android.content.Context
 import android.database.Cursor
 import android.net.Uri
+import android.util.Log
 import java.io.File
 
 data class ModelDownloadStatus(
@@ -143,8 +144,12 @@ class ModelDownloader(
     fun getModelPath(model: ModelSpec): String = getModelFile(model).absolutePath
 
     private fun getModelFile(model: ModelSpec): File {
-        return File(context.getExternalFilesDir("models"), model.fileName)
+        val file = File(context.getExternalFilesDir("models"), model.fileName)
+        Log.d("MODEL_FILE", file.absolutePath)
+        Log.d("MODEL_EXISTS", file.exists().toString())
+        return file
     }
+
 
     private fun downloadKey(model: ModelSpec): String = "download_id_${model.id}"
 
