@@ -19,6 +19,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     private var activeModel = ModelCatalog.defaultModel
     private var downloadPollingJob: Job? = null
     private var loadedModelId: String? = null
+    private var downloadingModelId: String? = null
 
     val messages = mutableStateListOf(
         Message(
@@ -48,9 +49,31 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     fun refreshModelStatus(model: ModelSpec = activeModel) {
         activeModel = model
-        modelDownloadStatus = downloader.getDownloadStatus(model)
+        val latestStatus = downloader.getDownloadStatus(model)
+        modelDownloadStatus = if (
+            downloadingModelId == model.id &&
+            !latestStatus.isDownloaded &&
+            !latestStatus.statusMessage.contains("failed", ignoreCase = true)
+        ) {
+            latestStatus.copy(
+                isDownloading = true,
+                progressPercent = latestStatus.progressPercent ?: modelDownloadStatus.progressPercent ?: 0,
+                statusMessage = if (latestStatus.statusMessage == "Not downloaded") {
+                    "Starting download"
+                } else {
+                    latestStatus.statusMessage
+                }
+            )
+        } else {
+            latestStatus
+        }
         isModelLoaded = loadedModelId == model.id
-        if (modelDownloadStatus.isDownloading) {
+        if (modelDownloadStatus.isDownloaded || modelDownloadStatus.statusMessage.contains("failed", ignoreCase = true)) {
+            if (downloadingModelId == model.id) {
+                downloadingModelId = null
+            }
+        }
+        if (modelDownloadStatus.isDownloading || downloadingModelId == model.id) {
             startDownloadPolling(model)
         }
     }
@@ -58,6 +81,13 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     fun downloadSelectedModel(model : ModelSpec) {
         activeModel = model
         selectedModel = model.displayName
+        downloadingModelId = model.id
+        modelDownloadStatus = ModelDownloadStatus(
+            isDownloaded = false,
+            isDownloading = true,
+            progressPercent = 0,
+            statusMessage = "Starting download"
+        )
         downloader.downloadModel(model)
         refreshModelStatus(model)
         startDownloadPolling(model)
@@ -139,7 +169,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun getModelStatus(model: ModelSpec): ModelDownloadStatus {
-        return if (model.id == activeModel.id) {
+        return if (model.id == activeModel.id || model.id == downloadingModelId) {
             modelDownloadStatus
         } else {
             downloader.getDownloadStatus(model)
@@ -152,14 +182,47 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         downloadPollingJob?.cancel()
 
         downloadPollingJob = viewModelScope.launch {
-            do {
-                modelDownloadStatus = downloader.getDownloadStatus(model)
+            var attempts = 0
+            while (attempts < 600) {
+                val latestStatus = downloader.getDownloadStatus(model)
                 activeModel = model
                 isModelLoaded = loadedModelId == model.id
-                if (modelDownloadStatus.isDownloading) {
-                    delay(1000)
+                modelDownloadStatus = if (
+                    downloadingModelId == model.id &&
+                    !latestStatus.isDownloaded &&
+                    !latestStatus.statusMessage.contains("failed", ignoreCase = true)
+                ) {
+                    latestStatus.copy(
+                        isDownloading = true,
+                        progressPercent = latestStatus.progressPercent ?: modelDownloadStatus.progressPercent ?: 0,
+                        statusMessage = if (latestStatus.statusMessage == "Not downloaded") {
+                            "Starting download"
+                        } else {
+                            latestStatus.statusMessage
+                        }
+                    )
+                } else {
+                    latestStatus
                 }
-            } while (modelDownloadStatus.isDownloading)
+
+                if (modelDownloadStatus.isDownloaded) {
+                    if (downloadingModelId == model.id) {
+                        downloadingModelId = null
+                    }
+                    break
+                }
+
+                val isFailure = modelDownloadStatus.statusMessage.contains("failed", ignoreCase = true)
+                if (isFailure) {
+                    if (downloadingModelId == model.id) {
+                        downloadingModelId = null
+                    }
+                    break
+                }
+
+                attempts++
+                delay(1000)
+            }
         }
     }
 }

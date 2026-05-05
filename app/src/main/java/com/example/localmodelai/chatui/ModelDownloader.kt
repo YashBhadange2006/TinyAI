@@ -41,19 +41,17 @@ class ModelDownloader(
     }
 
     fun getDownloadStatus(model: ModelSpec): ModelDownloadStatus {
-        val modelFile = getModelFile(model)
-        if (modelFile.exists()) {
-            clearStoredDownload(model)
-            return ModelDownloadStatus(
-                isDownloaded = true,
-                isDownloading = false,
-                progressPercent = 100,
-                statusMessage = "Downloaded"
-            )
-        }
-
         val downloadId = preferences.getLong(downloadKey(model), -1L)
+        val modelFile = getModelFile(model)
         if (downloadId == -1L) {
+            if (modelFile.exists()) {
+                return ModelDownloadStatus(
+                    isDownloaded = true,
+                    isDownloading = false,
+                    progressPercent = 100,
+                    statusMessage = "Downloaded"
+                )
+            }
             return ModelDownloadStatus(
                 isDownloaded = false,
                 isDownloading = false,
