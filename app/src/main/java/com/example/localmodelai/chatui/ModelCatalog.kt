@@ -23,7 +23,7 @@ object ModelCatalog {
         id = "gemma3",
         displayName = "Gemma3-1B-q8-4096",
         sizeLabel = "1.5GB download",
-        downloadUrl = "https://huggingface.co/litert-community/Gemma3-1B-IT/resolve/main/Gemma3-1B-IT_multi-prefill-seq_q8_ekv4096.task?download=true",
+        downloadUrl = "https://huggingface.co/Bioniok/LocalModel/resolve/main/Gemma3-1B-IT_seq128_q8_ekv4096.task?download=true",
         fileName = "Gemma3-1B-IT_multi-prefill-seq_q8_ekv4096.task",
         description = "Downloads the hosted MediaPipe .task model on demand, then loads it locally on device."
     )
