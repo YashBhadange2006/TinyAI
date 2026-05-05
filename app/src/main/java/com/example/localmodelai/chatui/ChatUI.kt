@@ -135,12 +135,18 @@ fun ModelPickerDialog(
     onDismiss: () -> Unit
 ) {
     val allModels = ModelCatalog.supportedModels
-    val status = chatViewModel.modelDownloadStatus
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text("Local model")
+            Column(modifier = Modifier.padding(12.dp)) {
+                Text("Local model")
+                Text(
+                    text = "Downloads the hosted MediaPipe .task model on demand, then loads it locally on device",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+
         },
         text = {
             LazyColumn(
@@ -150,13 +156,14 @@ fun ModelPickerDialog(
                 items(allModels){ model->
                     ModelItemRow(
                         model = model,
-                        status = status,
+                        status = chatViewModel.getModelStatus(model),
                         onDownload = {chatViewModel.downloadSelectedModel(model)},
                         onLoad = {
                             chatViewModel.loadSelectedModel(model)
                             onDismiss()
                         },
-                        isLoading = chatViewModel.isModelLoading
+                        isLoading = chatViewModel.isModelLoading,
+                        isLoaded = chatViewModel.isLoadedModel(model)
                     )
                 }
             }
@@ -171,7 +178,8 @@ fun ModelItemRow(
     status : ModelDownloadStatus,
     onDownload: () -> Unit,
     onLoad: () -> Unit,
-    isLoading: Boolean
+    isLoading: Boolean,
+    isLoaded: Boolean
 ){
     Card(
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
@@ -179,7 +187,6 @@ fun ModelItemRow(
     ){
         Column(modifier = Modifier.padding(12.dp)){
             Text(text = model.displayName, style = MaterialTheme.typography.titleMedium)
-            Text(text = model.description, style = MaterialTheme.typography.bodySmall)
             Text(text = "Size: ${model.sizeLabel}", style = MaterialTheme.typography.labelSmall)
 
             Row(
@@ -189,18 +196,18 @@ fun ModelItemRow(
                 Button(
                     onClick = onDownload,
                     enabled = !status.isDownloaded && !status.isDownloading,
-                    modifier = Modifier.padding(end = 8.dp)
+                    modifier = Modifier.padding(end = 4.dp)
                 ) {
                     Text(if(status.isDownloading) "Downloading..." else "Download Model")
                 }
 
                 Button(
                     onClick = onLoad,
-                    enabled = status.isDownloaded && !isLoading
+                    enabled = status.isDownloaded && !isLoading,
                 ){
                     Text(
                         if (isLoading) "Loading..."
-                        else if (isLoading) "Loaded"
+                        else if (isLoaded) "Loaded"
                         else "Load Model"
                     )
                 }

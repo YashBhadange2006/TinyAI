@@ -16,8 +16,9 @@ import kotlinx.coroutines.withContext
 class ChatViewModel(application: Application) : AndroidViewModel(application) {
     private val llm = LocalLLMManager(application)
     private val downloader = ModelDownloader(application)
-    private val activeModel = ModelCatalog.defaultModel
+    private var activeModel = ModelCatalog.defaultModel
     private var downloadPollingJob: Job? = null
+    private var loadedModelId: String? = null
 
     val messages = mutableStateListOf(
         Message(
@@ -45,23 +46,32 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         refreshModelStatus()
     }
 
-    fun refreshModelStatus() {
-        modelDownloadStatus = downloader.getDownloadStatus(activeModel)
+    fun refreshModelStatus(model: ModelSpec = activeModel) {
+        activeModel = model
+        modelDownloadStatus = downloader.getDownloadStatus(model)
+        isModelLoaded = loadedModelId == model.id
         if (modelDownloadStatus.isDownloading) {
-            startDownloadPolling()
+            startDownloadPolling(model)
         }
     }
 
     fun downloadSelectedModel(model : ModelSpec) {
-        downloader.downloadModel(activeModel)
-        refreshModelStatus()
-        startDownloadPolling()
+        activeModel = model
+        selectedModel = model.displayName
+        downloader.downloadModel(model)
+        refreshModelStatus(model)
+        startDownloadPolling(model)
     }
 
     fun loadSelectedModel(model : ModelSpec) {
-        if (!modelDownloadStatus.isDownloaded) {
+        activeModel = model
+        selectedModel = model.displayName
+        val status = downloader.getDownloadStatus(model)
+        modelDownloadStatus = status
+
+        if (!status.isDownloaded) {
             messages.add(
-                Message("Download ${activeModel.displayName} first, then load it.", false)
+                Message("Download ${model.displayName} first, then load it.", false)
             )
             return
         }
@@ -69,19 +79,20 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         isModelLoading = true
         viewModelScope.launch {
             try {
-                val modelPath = downloader.getModelPath(activeModel)
+                val modelPath = downloader.getModelPath(model)
                 withContext(Dispatchers.IO) {
                     llm.loadModel(modelPath)
                 }
+                loadedModelId = model.id
                 isModelLoaded = true
-                selectedModel = activeModel.displayName
                 messages.add(
-                    Message("${activeModel.displayName} is loaded and ready for local chat.", false)
+                    Message("${model.displayName} is loaded and ready for local chat.", false)
                 )
             } catch (e: Exception) {
+                loadedModelId = null
                 isModelLoaded = false
                 messages.add(
-                    Message("Failed to load ${activeModel.displayName}: ${e.message ?: "unknown error"}", false)
+                    Message("Failed to load ${model.displayName}: ${e.message ?: "unknown error"}", false)
                 )
             } finally {
                 isModelLoading = false
@@ -110,27 +121,41 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private suspend fun ensureModelLoaded(): Boolean {
-        if (isModelLoaded) return true
+        if (loadedModelId == activeModel.id && isModelLoaded) return true
         if (!modelDownloadStatus.isDownloaded) return false
 
         return try {
             withContext(Dispatchers.IO) {
                 llm.loadModel(downloader.getModelPath(activeModel))
             }
+            loadedModelId = activeModel.id
             isModelLoaded = true
             true
         } catch (_: Exception) {
+            loadedModelId = null
             isModelLoaded = false
             false
         }
     }
 
-    private fun startDownloadPolling() {
-        if (downloadPollingJob?.isActive == true) return
+    fun getModelStatus(model: ModelSpec): ModelDownloadStatus {
+        return if (model.id == activeModel.id) {
+            modelDownloadStatus
+        } else {
+            downloader.getDownloadStatus(model)
+        }
+    }
+
+    fun isLoadedModel(model: ModelSpec): Boolean = loadedModelId == model.id
+
+    private fun startDownloadPolling(model: ModelSpec) {
+        downloadPollingJob?.cancel()
 
         downloadPollingJob = viewModelScope.launch {
             do {
-                modelDownloadStatus = downloader.getDownloadStatus(activeModel)
+                modelDownloadStatus = downloader.getDownloadStatus(model)
+                activeModel = model
+                isModelLoaded = loadedModelId == model.id
                 if (modelDownloadStatus.isDownloading) {
                     delay(1000)
                 }
