@@ -26,9 +26,11 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -132,7 +134,7 @@ fun ModelPickerDialog(
     chatViewModel: ChatViewModel,
     onDismiss: () -> Unit
 ) {
-    val model = ModelCatalog.defaultModel
+    val allModels = ModelCatalog.supportedModels
     val status = chatViewModel.modelDownloadStatus
 
     AlertDialog(
@@ -141,41 +143,70 @@ fun ModelPickerDialog(
             Text("Local model")
         },
         text = {
-            Column {
-                Text(model.displayName)
-                Text(model.description, modifier = Modifier.padding(top = 8.dp))
-                Text("Size: ${model.sizeLabel}", modifier = Modifier.padding(top = 8.dp))
-                Text("Status: ${status.statusMessage}", modifier = Modifier.padding(top = 8.dp))
-
-                Button(
-                    onClick = { chatViewModel.downloadSelectedModel() },
-                    enabled = !status.isDownloaded && !status.isDownloading,
-                    modifier = Modifier.padding(top = 12.dp)
-                ) {
-                    Text(
-                        if (status.isDownloading) "Downloading..."
-                        else "Download Model"
-                    )
-                }
-
-                Button(
-                    onClick = {
-                        chatViewModel.loadSelectedModel()
-                        onDismiss()
-                    },
-                    enabled = status.isDownloaded && !chatViewModel.isModelLoading,
-                    modifier = Modifier.padding(top = 8.dp)
-                ) {
-                    Text(
-                        if (chatViewModel.isModelLoading) "Loading..."
-                        else if (chatViewModel.isModelLoaded) "Loaded"
-                        else "Load Model"
+            LazyColumn(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                items(allModels){ model->
+                    ModelItemRow(
+                        model = model,
+                        status = status,
+                        onDownload = {chatViewModel.downloadSelectedModel(model)},
+                        onLoad = {
+                            chatViewModel.loadSelectedModel(model)
+                            onDismiss()
+                        },
+                        isLoading = chatViewModel.isModelLoading
                     )
                 }
             }
         },
         confirmButton = {}
     )
+}
+
+@Composable
+fun ModelItemRow(
+    model : ModelSpec,
+    status : ModelDownloadStatus,
+    onDownload: () -> Unit,
+    onLoad: () -> Unit,
+    isLoading: Boolean
+){
+    Card(
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        modifier = Modifier.fillMaxWidth()
+    ){
+        Column(modifier = Modifier.padding(12.dp)){
+            Text(text = model.displayName, style = MaterialTheme.typography.titleMedium)
+            Text(text = model.description, style = MaterialTheme.typography.bodySmall)
+            Text(text = "Size: ${model.sizeLabel}", style = MaterialTheme.typography.labelSmall)
+
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                horizontalArrangement = Arrangement.End
+            ){
+                Button(
+                    onClick = onDownload,
+                    enabled = !status.isDownloaded && !status.isDownloading,
+                    modifier = Modifier.padding(end = 8.dp)
+                ) {
+                    Text(if(status.isDownloading) "Downloading..." else "Download Model")
+                }
+
+                Button(
+                    onClick = onLoad,
+                    enabled = status.isDownloaded && !isLoading
+                ){
+                    Text(
+                        if (isLoading) "Loading..."
+                        else if (isLoading) "Loaded"
+                        else "Load Model"
+                    )
+                }
+            }
+        }
+    }
 }
 
 @Composable

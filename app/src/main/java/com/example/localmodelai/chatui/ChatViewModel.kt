@@ -52,13 +52,13 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun downloadSelectedModel() {
+    fun downloadSelectedModel(model : ModelSpec) {
         downloader.downloadModel(activeModel)
         refreshModelStatus()
         startDownloadPolling()
     }
 
-    fun loadSelectedModel() {
+    fun loadSelectedModel(model : ModelSpec) {
         if (!modelDownloadStatus.isDownloaded) {
             messages.add(
                 Message("Download ${activeModel.displayName} first, then load it.", false)
