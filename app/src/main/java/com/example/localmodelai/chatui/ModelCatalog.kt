@@ -28,6 +28,24 @@ object ModelCatalog {
         description = "Downloads the hosted MediaPipe .task model on demand, then loads it locally on device."
     )
 
-    val supportedModels = listOf(tinyLlama,gemma3)
+    val qwen3_4b_q4 = ModelSpec(
+        id = "Qwen-4b-4q_task",
+        displayName = "Qwen3-thinking-4b-q4-ekv2048",
+        sizeLabel = "2.1GB download",
+        downloadUrl = "https://huggingface.co/Bioniok/LocalModel/resolve/main/qwen3_thinking_4b_q4_block128_ekv2048.task?download=true",
+        fileName = "qwen3_thinking_4b_q4_block128_ekv2048.task",
+        description = "Downloads the hosted MediaPipe .task model on demand, then loads it locally on device."
+    )
+
+    val deepseek_r1_distill_qwen_1_5B = ModelSpec(
+        id = "DeepSeek-R1-Distill-Qwen_task",
+        displayName = "DeepSeek-R1-Distill-Qwen-1.5B-Q8-EKV4096",
+        sizeLabel = "1.83GB download",
+        downloadUrl = "https://huggingface.co/Bioniok/LocalModel/resolve/main/DeepSeek-R1-Distill-Qwen-1.5B_multi-prefill-seq_q8_ekv4096.task?download=true",
+        fileName = "DeepSeek-R1-Distill-Qwen-1.5B_multi-prefill-seq_q8_ekv4096.task",
+        description = "Downloads the hosted MediaPipe .task model on demand, then loads it locally on device."
+    )
+
+    val supportedModels = listOf(tinyLlama,gemma3,qwen3_4b_q4,deepseek_r1_distill_qwen_1_5B)
     val defaultModel = gemma3
 }
