@@ -30,6 +30,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -188,6 +189,37 @@ fun ModelItemRow(
         Column(modifier = Modifier.padding(12.dp)){
             Text(text = model.displayName, style = MaterialTheme.typography.titleMedium)
             Text(text = "Size: ${model.sizeLabel}", style = MaterialTheme.typography.labelSmall)
+
+            if (status.isDownloading) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp, bottom = 4.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Downloading",
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                        Text(
+                            text = "${status.progressPercent ?: 0}%",
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    }
+                    val brightPink = Color(0xFFB031F3)
+                    LinearProgressIndicator(
+                        progress = { ((status.progressPercent ?: 0).coerceIn(0, 100)) / 100f },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 4.dp),
+                        color = brightPink
+                    )
+                }
+            }
 
             Row(
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
