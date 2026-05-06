@@ -46,6 +46,15 @@ object ModelCatalog {
         description = "Downloads the hosted MediaPipe .task model on demand, then loads it locally on device."
     )
 
-    val supportedModels = listOf(tinyLlama,gemma3,qwen3_4b_q4,deepseek_r1_distill_qwen_1_5B)
+    val gemma2_2b = ModelSpec(
+        id = "Gemma2-2b-it-cpu-int8",
+        displayName = "Gemma2-2b-it-cpu-int8",
+        sizeLabel = "3.2GB download",
+        downloadUrl = "https://huggingface.co/Bioniok/LocalModel/resolve/main/gemma2-2b-it-cpu-int8.task?download=true",
+        fileName = "gemma2-2b-it-cpu-int8.task",
+        description = "Downloads the hosted MediaPipe .task model on demand, then loads it locally on device."
+    )
+
+    val supportedModels = listOf(tinyLlama,gemma3,deepseek_r1_distill_qwen_1_5B,gemma2_2b)
     val defaultModel = gemma3
 }
