@@ -336,7 +336,8 @@ fun MessageBubble(message: Message) {
             if (message.isUser) {
                 Text(
                     text = message.text,
-                    modifier = Modifier.padding(12.dp)
+                    modifier = Modifier.padding(12.dp),
+                    style = MaterialTheme.typography.bodyMedium
                 )
             } else {
                 MarkdownText(

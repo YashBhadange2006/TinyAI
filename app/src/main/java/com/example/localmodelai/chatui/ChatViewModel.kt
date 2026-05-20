@@ -7,6 +7,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.localmodelai.roomdb.AppDatabase
+import com.example.localmodelai.roomdb.ChatMessageEntity
+import com.example.localmodelai.roomdb.ChatSession
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -16,21 +19,19 @@ import kotlinx.coroutines.withContext
 class ChatViewModel(application: Application) : AndroidViewModel(application) {
     private companion object {
         const val CONTEXT_MESSAGE_LIMIT = 4
+        const val SESSION_TITLE_MAX_LENGTH = 40
     }
 
     private val llm = LocalLLMManager(application)
     private val downloader = ModelDownloader(application)
+    private val chatDao = AppDatabase.getDatabase(application).chatDao()
     private var activeModel = ModelCatalog.defaultModel
     private var downloadPollingJob: Job? = null
     private var loadedModelId: String? = null
     private var downloadingModelId: String? = null
+    private var currentSessionId: Long? = null
 
-    val messages = mutableStateListOf(
-        Message(
-            "This app now downloads supported local models on demand. It can load MediaPipe .task models and LiteRT-LM .litertlm models directly on device.",
-            false
-        )
-    )
+    val messages = mutableStateListOf<Message>()
 
     var selectedModel by mutableStateOf(activeModel.displayName)
         private set
@@ -48,7 +49,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         private set
 
     init {
+        setIntroMessageIfNeeded()
         refreshModelStatus()
+        restoreLatestSession()
     }
 
     fun refreshModelStatus(model: ModelSpec = activeModel) {
@@ -145,19 +148,30 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 return@launch
             }
 
+            persistMessage(prompt, isUser = true)
             isTyping = true
             val contextualPrompt = buildContextualPrompt()
             val reply = withContext(Dispatchers.IO) {
                 llm.generate(contextualPrompt)
             }
             messages.add(Message(reply, false))
+            persistMessage(reply, isUser = false)
             isTyping = false
         }
     }
 
     private fun buildContextualPrompt(): String {
         val recentMessages = messages
-            .drop(1)
+            .let { currentMessages ->
+                if (
+                    currentMessages.firstOrNull()?.isUser == false &&
+                    currentMessages.firstOrNull()?.text?.startsWith("This app now downloads supported local models") == true
+                ) {
+                    currentMessages.drop(1)
+                } else {
+                    currentMessages
+                }
+            }
             .takeLast(CONTEXT_MESSAGE_LIMIT)
 
         if (recentMessages.isEmpty()) return ""
@@ -252,6 +266,92 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 attempts++
                 delay(1000)
             }
+        }
+    }
+
+    private fun restoreLatestSession() {
+        viewModelScope.launch {
+            val latestSession = withContext(Dispatchers.IO) {
+                chatDao.getLatestSession()
+            }
+
+            if (latestSession == null) {
+                return@launch
+            }
+
+            currentSessionId = latestSession.id
+            latestSession.modelName.takeIf { it.isNotBlank() }?.let { modelName ->
+                ModelCatalog.supportedModels.firstOrNull { it.displayName == modelName }?.let { model ->
+                    activeModel = model
+                    selectedModel = model.displayName
+                    modelDownloadStatus = downloader.getDownloadStatus(model)
+                }
+            }
+
+            val storedMessages = withContext(Dispatchers.IO) {
+                chatDao.getMessagesForSession(latestSession.id)
+            }
+
+            messages.clear()
+            if (storedMessages.isEmpty()) {
+                setIntroMessageIfNeeded()
+            } else {
+                messages.addAll(
+                    storedMessages.map {
+                        Message(
+                            text = it.text,
+                            isUser = it.isUser
+                        )
+                    }
+                )
+            }
+        }
+    }
+
+    private suspend fun persistMessage(text: String, isUser: Boolean) {
+        val sessionId = ensureSessionExists(firstMessageText = text)
+        withContext(Dispatchers.IO) {
+            chatDao.insertMessage(
+                ChatMessageEntity(
+                    sessionId = sessionId,
+                    text = text,
+                    isUser = isUser,
+                    timestamp = System.currentTimeMillis()
+                )
+            )
+        }
+    }
+
+    private suspend fun ensureSessionExists(firstMessageText: String): Long {
+        currentSessionId?.let { return it }
+
+        val sessionTitle = firstMessageText
+            .trim()
+            .replace("\n", " ")
+            .take(SESSION_TITLE_MAX_LENGTH)
+            .ifBlank { "New chat" }
+
+        val sessionId = withContext(Dispatchers.IO) {
+            chatDao.insertSession(
+                ChatSession(
+                    title = sessionTitle,
+                    createdAt = System.currentTimeMillis(),
+                    modelName = activeModel.displayName
+                )
+            )
+        }
+        currentSessionId = sessionId
+        return sessionId
+    }
+
+    private fun setIntroMessageIfNeeded() {
+        if (messages.isEmpty()) {
+            messages.add(
+                Message(
+                    "This app now downloads supported local models on demand. It can load MediaPipe .task models and LiteRT-LM .litertlm models directly on device.",
+                    false
+                )
+            )
         }
     }
 
