@@ -48,9 +48,13 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     var modelDownloadStatus by mutableStateOf(downloader.getDownloadStatus(activeModel))
         private set
 
+    var chatSessions by mutableStateOf<List<ChatSession>>(emptyList())
+        private set
+
     init {
         setIntroMessageIfNeeded()
         refreshModelStatus()
+        loadChatSessions()
         restoreLatestSession()
     }
 
@@ -221,6 +225,47 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     fun isLoadedModel(model: ModelSpec): Boolean = loadedModelId == model.id
 
+    fun startNewChat() {
+        currentSessionId = null
+        messages.clear()
+        setIntroMessageIfNeeded()
+    }
+
+    fun loadChatSession(sessionId: Long) {
+        viewModelScope.launch {
+            val session = withContext(Dispatchers.IO) {
+                chatDao.getSessionById(sessionId)
+            } ?: return@launch
+
+            currentSessionId = session.id
+            session.modelName.takeIf { it.isNotBlank() }?.let { modelName ->
+                ModelCatalog.supportedModels.firstOrNull { it.displayName == modelName }?.let { model ->
+                    activeModel = model
+                    selectedModel = model.displayName
+                    modelDownloadStatus = downloader.getDownloadStatus(model)
+                }
+            }
+
+            val storedMessages = withContext(Dispatchers.IO) {
+                chatDao.getMessagesForSession(session.id)
+            }
+
+            messages.clear()
+            if (storedMessages.isEmpty()) {
+                setIntroMessageIfNeeded()
+            } else {
+                messages.addAll(
+                    storedMessages.map {
+                        Message(
+                            text = it.text,
+                            isUser = it.isUser
+                        )
+                    }
+                )
+            }
+        }
+    }
+
     private fun startDownloadPolling(model: ModelSpec) {
         downloadPollingJob?.cancel()
 
@@ -308,6 +353,14 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    private fun loadChatSessions() {
+        viewModelScope.launch {
+            chatSessions = withContext(Dispatchers.IO) {
+                chatDao.getAllSessions()
+            }
+        }
+    }
+
     private suspend fun persistMessage(text: String, isUser: Boolean) {
         val sessionId = ensureSessionExists(firstMessageText = text)
         withContext(Dispatchers.IO) {
@@ -320,6 +373,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 )
             )
         }
+        loadChatSessions()
     }
 
     private suspend fun ensureSessionExists(firstMessageText: String): Long {
@@ -341,8 +395,11 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             )
         }
         currentSessionId = sessionId
+        loadChatSessions()
         return sessionId
     }
+
+    fun isSelectedSession(sessionId: Long): Boolean = currentSessionId == sessionId
 
     private fun setIntroMessageIfNeeded() {
         if (messages.isEmpty()) {

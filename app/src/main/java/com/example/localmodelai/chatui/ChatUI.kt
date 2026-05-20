@@ -9,9 +9,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -19,29 +22,43 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Send
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -50,6 +67,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.jeziellago.compose.markdowntext.MarkdownText
+import kotlinx.coroutines.launch
 
 data class Message(
     val text: String,
@@ -81,45 +99,141 @@ fun ChatUI() {
         else -> "No model"
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text("Offline AI Chat")
-                },
-                actions = {
-                    Text(
-                        text = statusLabel,
-                        modifier = Modifier.padding(end = 8.dp)
-                    )
-                    IconButton(
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
+
+    ModalNavigationDrawer(
+        drawerContent = {
+            ModalDrawerSheet {
+                Column(
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    Spacer(Modifier.height(12.dp))
+                    Text("PocketAI", modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.titleLarge)
+                    HorizontalDivider()
+
+                    NavigationDrawerItem(
+                        label = { Text("New Chat") },
+                        selected = false,
+                        icon = {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = null
+                            )
+                        },
                         onClick = {
-                            chatViewModel.refreshModelStatus()
-                            showModelDialog = true
+                            chatViewModel.startNewChat()
+                            scope.launch {
+                                drawerState.close()
+                            }
                         }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = "Model settings"
+                    )
+
+                    Text("Chat Sessions", modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.titleMedium)
+                    if (chatViewModel.chatSessions.isEmpty()) {
+                        Text(
+                            text = "No saved chats yet",
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                            style = MaterialTheme.typography.bodyMedium
                         )
+                    } else {
+                        chatViewModel.chatSessions.forEach { session ->
+                            NavigationDrawerItem(
+                                label = { Text(session.title) },
+                                selected = chatViewModel.isSelectedSession(session.id),
+                                icon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Email,
+                                        contentDescription = null
+                                    )
+                                },
+                                onClick = {
+                                    chatViewModel.loadChatSession(session.id)
+                                    scope.launch {
+                                        drawerState.close()
+                                    }
+                                }
+                            )
+                        }
                     }
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                    Text("Section 2", modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.titleMedium)
+                    NavigationDrawerItem(
+                        label = { Text("Settings") },
+                        selected = false,
+                        icon = { Icon(Icons.Outlined.Settings, contentDescription = null) },
+                        badge = { Text("20") }, // Placeholder
+                        onClick = { /* Handle click */ }
+                    )
+                    NavigationDrawerItem(
+                        label = { Text("Help and feedback") },
+                        selected = false,
+                        icon = { Icon(Icons.AutoMirrored.Outlined.Send, contentDescription = null) },
+                        onClick = { /* Handle click */ },
+                    )
+                    Spacer(Modifier.height(12.dp))
                 }
-            )
+            }
         },
-        bottomBar = {
-            ChatInput(
-                onSend = { userText ->
-                    chatViewModel.sendMessage(userText)
-                }
+        drawerState = drawerState
+    ) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = {
+                        Text("PocketAI Chat")
+                    },
+                    navigationIcon = {
+                        IconButton(
+                            onClick = {
+                                scope.launch {
+                                    drawerState.open()
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Menu,
+                                contentDescription = "Open drawer"
+                            )
+                        }
+                    },
+                    actions = {
+                        Text(
+                            text = statusLabel,
+                            modifier = Modifier.padding(end = 8.dp)
+                        )
+                        IconButton(
+                            onClick = {
+                                chatViewModel.refreshModelStatus()
+                                showModelDialog = true
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = "Model settings"
+                            )
+                        }
+                    }
+                )
+            },
+            bottomBar = {
+                ChatInput(
+                    onSend = { userText ->
+                        chatViewModel.sendMessage(userText)
+                    }
+                )
+            }
+        ) { padding ->
+            MessageList(
+                messages = messages,
+                listState = listState,
+                isTyping = isTyping,
+                modifier = Modifier.padding(padding)
             )
         }
-    ) { padding ->
-        MessageList(
-            messages = messages,
-            listState = listState,
-            isTyping = isTyping,
-            modifier = Modifier.padding(padding)
-        )
     }
 
     if (showModelDialog) {

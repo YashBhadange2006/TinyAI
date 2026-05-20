@@ -15,6 +15,12 @@ interface ChatDao {
     @Query("SELECT * FROM ChatSession ORDER BY created_at DESC LIMIT 1")
     suspend fun getLatestSession(): ChatSession?
 
+    @Query("SELECT * FROM ChatSession ORDER BY created_at DESC")
+    suspend fun getAllSessions(): List<ChatSession>
+
+    @Query("SELECT * FROM ChatSession WHERE id = :sessionId LIMIT 1")
+    suspend fun getSessionById(sessionId: Long): ChatSession?
+
     @Query("SELECT * FROM ChatMessageEntity WHERE session_id = :sessionId ORDER BY timestamp ASC")
     suspend fun getMessagesForSession(sessionId: Long): List<ChatMessageEntity>
 
