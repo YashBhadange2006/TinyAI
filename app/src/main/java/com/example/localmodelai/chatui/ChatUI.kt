@@ -66,6 +66,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.jeziellago.compose.markdowntext.MarkdownText
 import kotlinx.coroutines.launch
@@ -417,7 +418,8 @@ fun ModelItemRow(
                     Text(
                         if (isLoading) "Loading..."
                         else if (isLoaded) "Loaded"
-                        else "Load Model"
+                        else "Load Model",
+                        fontSize = 12.sp
                     )
                 }
             }
