@@ -231,6 +231,22 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         setIntroMessageIfNeeded()
     }
 
+    fun deleteChatSession(sessionId: Long) {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                chatDao.deleteSession(sessionId)
+            }
+
+            if (currentSessionId == sessionId) {
+                currentSessionId = null
+                messages.clear()
+                setIntroMessageIfNeeded()
+            }
+
+            loadChatSessions()
+        }
+    }
+
     fun loadChatSession(sessionId: Long) {
         viewModelScope.launch {
             val session = withContext(Dispatchers.IO) {

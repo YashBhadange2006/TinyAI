@@ -29,6 +29,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Send
@@ -74,6 +75,11 @@ data class Message(
     val isUser: Boolean
 )
 
+private data class PendingDeleteSession(
+    val id: Long,
+    val title: String
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatUI() {
@@ -89,6 +95,7 @@ fun ChatUI() {
     }
 
     var showModelDialog by remember { mutableStateOf(false) }
+    var pendingDeleteSession by remember { mutableStateOf<PendingDeleteSession?>(null) }
     val statusLabel = when {
         chatViewModel.isModelLoaded -> "Ready"
         chatViewModel.isModelLoading -> "Loading"
@@ -139,22 +146,41 @@ fun ChatUI() {
                         )
                     } else {
                         chatViewModel.chatSessions.forEach { session ->
-                            NavigationDrawerItem(
-                                label = { Text(session.title) },
-                                selected = chatViewModel.isSelectedSession(session.id),
-                                icon = {
-                                    Icon(
-                                        imageVector = Icons.Default.Email,
-                                        contentDescription = null
-                                    )
-                                },
-                                onClick = {
-                                    chatViewModel.loadChatSession(session.id)
-                                    scope.launch {
-                                        drawerState.close()
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                NavigationDrawerItem(
+                                    modifier = Modifier.weight(1f),
+                                    label = { Text(session.title) },
+                                    selected = chatViewModel.isSelectedSession(session.id),
+                                    icon = {
+                                        Icon(
+                                            imageVector = Icons.Default.Email,
+                                            contentDescription = null
+                                        )
+                                    },
+                                    onClick = {
+                                        chatViewModel.loadChatSession(session.id)
+                                        scope.launch {
+                                            drawerState.close()
+                                        }
                                     }
+                                )
+                                IconButton(
+                                    onClick = {
+                                        pendingDeleteSession = PendingDeleteSession(
+                                            id = session.id,
+                                            title = session.title
+                                        )
+                                    }
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Delete,
+                                        contentDescription = "Delete chat"
+                                    )
                                 }
-                            )
+                            }
                         }
                     }
 
@@ -241,6 +267,39 @@ fun ChatUI() {
             chatViewModel = chatViewModel,
             onDismiss = {
                 showModelDialog = false
+            }
+        )
+    }
+
+    pendingDeleteSession?.let { session ->
+        AlertDialog(
+            onDismissRequest = {
+                pendingDeleteSession = null
+            },
+            title = {
+                Text("Delete chat")
+            },
+            text = {
+                Text("Delete \"${session.title}\" permanently?")
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        chatViewModel.deleteChatSession(session.id)
+                        pendingDeleteSession = null
+                    }
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                Button(
+                    onClick = {
+                        pendingDeleteSession = null
+                    }
+                ) {
+                    Text("Cancel")
+                }
             }
         )
     }
