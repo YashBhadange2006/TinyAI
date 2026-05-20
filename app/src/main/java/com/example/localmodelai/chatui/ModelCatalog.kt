@@ -46,15 +46,33 @@ object ModelCatalog {
         description = "Downloads the hosted MediaPipe .task model on demand, then loads it locally on device."
     )
 
-    val gemma2_2b = ModelSpec(
-        id = "Gemma2-2b-it-cpu-int8",
-        displayName = "Gemma2-2b-it-cpu-int8",
-        sizeLabel = "3.2GB download",
-        downloadUrl = "https://huggingface.co/Bioniok/LocalModel/resolve/main/gemma2-2b-it-cpu-int8.task?download=true",
-        fileName = "gemma2-2b-it-cpu-int8.task",
+    val gemma4_2b = ModelSpec(
+        id = "gemma-4-E2B-it",
+        displayName = "gemma-4-E2B-it",
+        sizeLabel = "2.58GB download",
+        downloadUrl = "https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it.litertlm?download=true",
+        fileName = "gemma-4-E2B-it.litertlm",
         description = "Downloads the hosted MediaPipe .task model on demand, then loads it locally on device."
     )
 
-    val supportedModels = listOf(tinyLlama,gemma3,deepseek_r1_distill_qwen_1_5B,gemma2_2b)
+    val gemma3_1b = ModelSpec(
+        id = "Gemma3-1B-IT_multi-prefill-seq_q4_ekv4096",
+        displayName = "Gemma3-1B-it-multi-prefill-int4-4096",
+        sizeLabel = "584MB download",
+        downloadUrl = "https://huggingface.co/Bioniok/LocalModel/resolve/main/Gemma3-1B-IT_multi-prefill-seq_q4_ekv4096.litertlm?download=true",
+        fileName = "Gemma3-1B-IT_multi-prefill-seq_q4_ekv4096.litertlm",
+        description = "Downloads the hosted LitertLM .litertlm model on demand, then loads it locally on device."
+    )
+
+    val SmolLM = ModelSpec(
+        id = "SmolLM-135M-Instruct_multi-prefill-seq_f32_ekv1280",
+        displayName = "SmolLM-135M-Instruct_multi-prefill-seq_f32_ekv1280",
+        sizeLabel = "553MB download",
+        downloadUrl = "https://huggingface.co/Bioniok/LocalModel/resolve/main/SmolLM-135M-Instruct_multi-prefill-seq_f32_ekv1280.task?download=true",
+        fileName = "SmolLM-135M-Instruct_multi-prefill-seq_f32_ekv1280.task",
+        description = "Downloads the hosted LitertLM .litertlm model on demand, then loads it locally on device."
+    )
+
+    val supportedModels = listOf(tinyLlama,SmolLM,gemma3_1b,gemma3,deepseek_r1_distill_qwen_1_5B,gemma4_2b)
     val defaultModel = gemma3
 }

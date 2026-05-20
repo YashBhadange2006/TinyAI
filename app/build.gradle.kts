@@ -32,8 +32,10 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    kotlinOptions {
-        jvmTarget = "11"
+    kotlin {
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
+        }
     }
 
     buildFeatures {
@@ -53,6 +55,8 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation("androidx.compose.material:material-icons-core")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.10.0")
+    implementation("com.github.jeziellago:compose-markdown:0.7.2")
+    implementation("com.google.ai.edge.litertlm:litertlm-android:0.11.0")
     implementation("com.google.mediapipe:tasks-genai:0.10.29")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

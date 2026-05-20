@@ -23,7 +23,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     val messages = mutableStateListOf(
         Message(
-            "This app now downloads your hosted MediaPipe .task model on demand. Tap the model menu to download it, load it, and then chat locally on device.",
+            "This app now downloads supported local models on demand. It can load MediaPipe .task models and LiteRT-LM .litertlm models directly on device.",
             false
         )
     )
@@ -224,5 +224,10 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 delay(1000)
             }
         }
+    }
+
+    override fun onCleared() {
+        llm.close()
+        super.onCleared()
     }
 }

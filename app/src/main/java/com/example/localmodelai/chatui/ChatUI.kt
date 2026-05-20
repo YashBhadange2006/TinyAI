@@ -49,6 +49,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import dev.jeziellago.compose.markdowntext.MarkdownText
 
 data class Message(
     val text: String,
@@ -144,7 +145,7 @@ fun ModelPickerDialog(
             Column(modifier = Modifier.padding(12.dp)) {
                 Text("Local model")
                 Text(
-                    text = "Downloads the hosted MediaPipe .task model on demand, then loads it locally on device",
+                    text = "Downloads supported .task or .litertlm models on demand, then loads them locally on device",
                     style = MaterialTheme.typography.bodySmall
                 )
             }
@@ -332,10 +333,19 @@ fun MessageBubble(message: Message) {
             modifier = Modifier.padding(8.dp),
             shape = RoundedCornerShape(16.dp)
         ) {
-            Text(
-                text = message.text,
-                modifier = Modifier.padding(12.dp)
-            )
+            if (message.isUser) {
+                Text(
+                    text = message.text,
+                    modifier = Modifier.padding(12.dp)
+                )
+            } else {
+                MarkdownText(
+                    markdown = message.text,
+                    modifier = Modifier.padding(12.dp),
+                    style = MaterialTheme.typography.bodyMedium,
+                    linkColor = MaterialTheme.colorScheme.primary
+                )
+            }
         }
     }
 }
