@@ -14,6 +14,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class ChatViewModel(application: Application) : AndroidViewModel(application) {
+    private companion object {
+        const val CONTEXT_MESSAGE_LIMIT = 4
+    }
+
     private val llm = LocalLLMManager(application)
     private val downloader = ModelDownloader(application)
     private var activeModel = ModelCatalog.defaultModel
@@ -142,11 +146,36 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             }
 
             isTyping = true
+            val contextualPrompt = buildContextualPrompt()
             val reply = withContext(Dispatchers.IO) {
-                llm.generate(prompt)
+                llm.generate(contextualPrompt)
             }
             messages.add(Message(reply, false))
             isTyping = false
+        }
+    }
+
+    private fun buildContextualPrompt(): String {
+        val recentMessages = messages
+            .drop(1)
+            .takeLast(CONTEXT_MESSAGE_LIMIT)
+
+        if (recentMessages.isEmpty()) return ""
+
+        val conversation = recentMessages.joinToString(separator = "\n") { message ->
+            if (message.isUser) {
+                "User: ${message.text}"
+            } else {
+                "Assistant: ${message.text}"
+            }
+        }
+
+        return buildString {
+            appendLine("Use the recent conversation context when it is relevant.")
+            appendLine("Keep the answer concise and continue naturally from the chat.")
+            appendLine()
+            appendLine(conversation)
+            append("Assistant:")
         }
     }
 
