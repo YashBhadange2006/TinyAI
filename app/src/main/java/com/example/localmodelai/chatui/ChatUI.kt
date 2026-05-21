@@ -337,11 +337,12 @@ fun ModelPickerDialog(
                         model = model,
                         status = chatViewModel.getModelStatus(model),
                         onDownload = {chatViewModel.downloadSelectedModel(model)},
+                        onDelete = { chatViewModel.deleteSelectedModel(model) },
                         onLoad = {
                             chatViewModel.loadSelectedModel(model)
                             onDismiss()
                         },
-                        isLoading = chatViewModel.isModelLoading,
+                        isLoading = chatViewModel.isLoadingModel(model),
                         isLoaded = chatViewModel.isLoadedModel(model)
                     )
                 }
@@ -356,6 +357,7 @@ fun ModelItemRow(
     model : ModelSpec,
     status : ModelDownloadStatus,
     onDownload: () -> Unit,
+    onDelete: () -> Unit,
     onLoad: () -> Unit,
     isLoading: Boolean,
     isLoaded: Boolean
@@ -364,7 +366,10 @@ fun ModelItemRow(
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         modifier = Modifier.fillMaxWidth()
     ){
-        Column(modifier = Modifier.padding(12.dp)){
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ){
             Text(text = model.displayName, style = MaterialTheme.typography.titleMedium)
             Text(text = "Size: ${model.sizeLabel}", style = MaterialTheme.typography.labelSmall)
 
@@ -372,7 +377,6 @@ fun ModelItemRow(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 10.dp, bottom = 4.dp)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -399,28 +403,48 @@ fun ModelItemRow(
                 }
             }
 
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                horizontalArrangement = Arrangement.End
-            ){
-                Button(
-                    onClick = onDownload,
-                    enabled = !status.isDownloaded && !status.isDownloading,
-                    modifier = Modifier.padding(end = 4.dp)
-                ) {
-                    Text(if(status.isDownloading) "Downloading..." else "Download Model")
+            when {
+                status.isDownloading -> {
+                    Button(
+                        onClick = {},
+                        enabled = false,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Downloading...")
+                    }
                 }
-
-                Button(
-                    onClick = onLoad,
-                    enabled = status.isDownloaded && !isLoading,
-                ){
-                    Text(
-                        if (isLoading) "Loading..."
-                        else if (isLoaded) "Loaded"
-                        else "Load Model",
-                        fontSize = 12.sp
-                    )
+                status.isDownloaded -> {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = onDelete,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Delete", fontSize = 12.sp)
+                        }
+                        Button(
+                            onClick = onLoad,
+                            enabled = !isLoading && !isLoaded,
+                            modifier = Modifier.weight(1f)
+                        ){
+                            Text(
+                                if (isLoading) "Loading..."
+                                else if (isLoaded) "Loaded"
+                                else "Load Model",
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
+                }
+                else -> {
+                    Button(
+                        onClick = onDownload,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Download Model")
+                    }
                 }
             }
         }
