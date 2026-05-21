@@ -46,13 +46,23 @@ object ModelCatalog {
         description = "Downloads the hosted MediaPipe .task model on demand, then loads it locally on device."
     )
 
+    val qwen25_1_5B_Instruct = ModelSpec(
+        id = "Qwen2.5-1.5B-Instruct_q8_4098",
+        displayName = "Qwen2.5-1.5B-Instruct_q8_4098",
+        sizeLabel = "1.6GB download",
+        downloadUrl = "https://huggingface.co/litert-community/Qwen2.5-1.5B-Instruct/resolve/main/Qwen2.5-1.5B-Instruct_multi-prefill-seq_q8_ekv4096.litertlm?download=true",
+        fileName = "Qwen2.5-1.5B-Instruct_multi-prefill-seq_q8_ekv4096.litertlm",
+        description = "Downloads the hosted LitertLM .litertlm model on demand, then loads it locally on device."
+    )
+
+
     val gemma4_2b = ModelSpec(
         id = "gemma-4-E2B-it",
         displayName = "gemma-4-E2B-it",
         sizeLabel = "2.58GB download",
         downloadUrl = "https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it.litertlm?download=true",
         fileName = "gemma-4-E2B-it.litertlm",
-        description = "Downloads the hosted MediaPipe .task model on demand, then loads it locally on device."
+        description = "Downloads the hosted LitertLM .litertlm model on demand, then loads it locally on device."
     )
 
     val gemma3_1b = ModelSpec(
@@ -73,6 +83,6 @@ object ModelCatalog {
         description = "Downloads the hosted LitertLM .litertlm model on demand, then loads it locally on device."
     )
 
-    val supportedModels = listOf(tinyLlama,SmolLM,gemma3_1b,gemma3,deepseek_r1_distill_qwen_1_5B,gemma4_2b)
+    val supportedModels = listOf(tinyLlama,SmolLM,gemma3_1b,gemma3,qwen25_1_5B_Instruct,deepseek_r1_distill_qwen_1_5B,gemma4_2b)
     val defaultModel = gemma3
 }

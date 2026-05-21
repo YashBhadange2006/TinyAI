@@ -29,6 +29,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     private var downloadPollingJob: Job? = null
     private var loadedModelId: String? = null
     private var downloadingModelId: String? = null
+    private var loadingModelId: String? = null
     private var currentSessionId: Long? = null
 
     val messages = mutableStateListOf<Message>()
@@ -59,7 +60,6 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun refreshModelStatus(model: ModelSpec = activeModel) {
-        activeModel = model
         val latestStatus = downloader.getDownloadStatus(model)
         modelDownloadStatus = if (
             downloadingModelId == model.id &&
@@ -78,7 +78,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         } else {
             latestStatus
         }
-        isModelLoaded = loadedModelId == model.id
+        isModelLoaded = loadedModelId == activeModel.id
         if (modelDownloadStatus.isDownloaded || modelDownloadStatus.statusMessage.contains("failed", ignoreCase = true)) {
             if (downloadingModelId == model.id) {
                 downloadingModelId = null
@@ -90,8 +90,6 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun downloadSelectedModel(model : ModelSpec) {
-        activeModel = model
-        selectedModel = model.displayName
         downloadingModelId = model.id
         modelDownloadStatus = ModelDownloadStatus(
             isDownloaded = false,
@@ -118,8 +116,14 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         isModelLoading = true
+        loadingModelId = model.id
         viewModelScope.launch {
             try {
+                if (loadedModelId != null && loadedModelId != model.id) {
+                    llm.close()
+                    loadedModelId = null
+                    isModelLoaded = false
+                }
                 val modelPath = downloader.getModelPath(model)
                 withContext(Dispatchers.IO) {
                     llm.loadModel(modelPath)
@@ -137,6 +141,40 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 )
             } finally {
                 isModelLoading = false
+                loadingModelId = null
+            }
+        }
+    }
+
+    fun deleteSelectedModel(model: ModelSpec) {
+        viewModelScope.launch {
+            val deleted = withContext(Dispatchers.IO) {
+                downloader.deleteModel(model)
+            }
+
+            if (deleted) {
+                if (loadedModelId == model.id) {
+                    llm.close()
+                    loadedModelId = null
+                    isModelLoaded = false
+                }
+                if (loadingModelId == model.id) {
+                    loadingModelId = null
+                    isModelLoading = false
+                }
+                if (downloadingModelId == model.id) {
+                    downloadingModelId = null
+                }
+                if (activeModel.id == model.id) {
+                    modelDownloadStatus = downloader.getDownloadStatus(model)
+                }
+                messages.add(
+                    Message("${model.displayName} was deleted from device storage.", false)
+                )
+            } else {
+                messages.add(
+                    Message("Failed to delete ${model.displayName} from device storage.", false)
+                )
             }
         }
     }
@@ -199,7 +237,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     private suspend fun ensureModelLoaded(): Boolean {
         if (loadedModelId == activeModel.id && isModelLoaded) return true
-        if (!modelDownloadStatus.isDownloaded) return false
+
+        val activeModelStatus = downloader.getDownloadStatus(activeModel)
+        if (!activeModelStatus.isDownloaded) return false
 
         return try {
             withContext(Dispatchers.IO) {
@@ -216,12 +256,14 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun getModelStatus(model: ModelSpec): ModelDownloadStatus {
-        return if (model.id == activeModel.id || model.id == downloadingModelId) {
+        return if (model.id == downloadingModelId) {
             modelDownloadStatus
         } else {
             downloader.getDownloadStatus(model)
         }
     }
+
+    fun isLoadingModel(model: ModelSpec): Boolean = loadingModelId == model.id && isModelLoading
 
     fun isLoadedModel(model: ModelSpec): Boolean = loadedModelId == model.id
 
@@ -289,8 +331,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             var attempts = 0
             while (attempts < 600) {
                 val latestStatus = downloader.getDownloadStatus(model)
-                activeModel = model
-                isModelLoaded = loadedModelId == model.id
+                isModelLoaded = loadedModelId == activeModel.id
                 modelDownloadStatus = if (
                     downloadingModelId == model.id &&
                     !latestStatus.isDownloaded &&

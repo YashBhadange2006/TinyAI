@@ -141,6 +141,17 @@ class ModelDownloader(
 
     fun getModelPath(model: ModelSpec): String = getModelFile(model).absolutePath
 
+    fun deleteModel(model: ModelSpec): Boolean {
+        val downloadId = preferences.getLong(downloadKey(model), -1L)
+        if (downloadId != -1L) {
+            downloadManager.remove(downloadId)
+        }
+
+        clearStoredDownload(model)
+        val modelFile = getModelFile(model)
+        return !modelFile.exists() || modelFile.delete()
+    }
+
     private fun getModelFile(model: ModelSpec): File {
         val file = File(context.getExternalFilesDir("models"), model.fileName)
         Log.d("MODEL_FILE", file.absolutePath)
