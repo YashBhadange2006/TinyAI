@@ -59,6 +59,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     var selectedAttachmentName by mutableStateOf<String?>(null)
         private set
 
+    var selectedAttachmentMimeType by mutableStateOf<String?>(null)
+        private set
+
     init {
         setIntroMessageIfNeeded()
         refreshModelStatus()
@@ -188,16 +191,37 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     fun sendMessage(prompt: String) {
         if (selectedAttachmentUri != null) {
-            if (prompt.isNotBlank()) {
-                messages.add(Message(prompt, true))
+            val attachmentUri = selectedAttachmentUri
+            val attachmentName = selectedAttachmentName ?: "Selected image"
+            val attachmentMimeType = selectedAttachmentMimeType
+            val effectivePrompt = prompt.ifBlank { "Describe this image." }
+
+            messages.add(Message("[Image] $attachmentName\n$effectivePrompt", true))
+
+            viewModelScope.launch {
+                if (!ensureModelLoaded()) {
+                    messages.add(
+                        Message("The model is not ready yet. Download and load ${activeModel.displayName} from the model menu first.", false)
+                    )
+                    return@launch
+                }
+
+                isTyping = true
+                val reply = withContext(Dispatchers.IO) {
+                    when {
+                        attachmentUri == null -> "No image was selected."
+                        attachmentMimeType?.startsWith("image/") != true -> {
+                            "Only image attachments are supported right now."
+                        }
+                        else -> {
+                            llm.generateWithImage(effectivePrompt, attachmentUri)
+                        }
+                    }
+                }
+                messages.add(Message(reply, false))
+                clearSelectedAttachment()
+                isTyping = false
             }
-            messages.add(
-                Message(
-                    "Attached file selected: ${selectedAttachmentName ?: "Unnamed file"}.\n\nFile understanding is not implemented yet, so right now the app can accept the file but cannot read it into the model.",
-                    false
-                )
-            )
-            clearSelectedAttachment()
             return
         }
 
@@ -288,14 +312,16 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     fun isLoadedModel(model: ModelSpec): Boolean = loadedModelId == model.id
 
-    fun setSelectedAttachment(uri: Uri, displayName: String) {
+    fun setSelectedAttachment(uri: Uri, displayName: String, mimeType: String?) {
         selectedAttachmentUri = uri
         selectedAttachmentName = displayName
+        selectedAttachmentMimeType = mimeType
     }
 
     fun clearSelectedAttachment() {
         selectedAttachmentUri = null
         selectedAttachmentName = null
+        selectedAttachmentMimeType = null
     }
 
     fun startNewChat() {

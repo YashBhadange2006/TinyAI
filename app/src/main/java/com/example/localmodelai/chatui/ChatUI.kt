@@ -115,7 +115,11 @@ fun ChatUI(
                 )
             } catch (_: SecurityException) {
             }
-            chatViewModel.setSelectedAttachment(uri, resolveFileName(context, uri))
+            chatViewModel.setSelectedAttachment(
+                uri = uri,
+                displayName = resolveFileName(context, uri),
+                mimeType = context.contentResolver.getType(uri)
+            )
         }
     }
 
@@ -285,7 +289,7 @@ fun ChatUI(
                 ChatInput(
                     selectedAttachmentName = chatViewModel.selectedAttachmentName,
                     onAttachClick = {
-                        attachmentPicker.launch(arrayOf("*/*"))
+                        attachmentPicker.launch(arrayOf("image/*"))
                     },
                     onClearAttachment = {
                         chatViewModel.clearSelectedAttachment()
@@ -495,8 +499,7 @@ fun ChatInput(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(8.dp)
-            .padding(horizontal = 8.dp, vertical = 50.dp),
+            .padding(start = 16.dp, end = 16.dp, bottom = 50.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         if (selectedAttachmentName != null) {
@@ -532,7 +535,7 @@ fun ChatInput(
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
-                    contentDescription = "Attach file"
+                    contentDescription = "Attach image"
                 )
             }
             TextField(

@@ -1,12 +1,19 @@
 package com.example.localmodelai.chatui
 
 import android.content.Context
+import android.net.Uri
+import java.io.File
 import com.google.ai.edge.litertlm.Backend
+import com.google.ai.edge.litertlm.Content
+import com.google.ai.edge.litertlm.Contents
 import com.google.ai.edge.litertlm.Engine
 import com.google.ai.edge.litertlm.EngineConfig
 import com.google.ai.edge.litertlm.LogSeverity
 import com.google.ai.edge.litertlm.Conversation
+import com.google.mediapipe.framework.image.BitmapImageBuilder
 import com.google.mediapipe.tasks.genai.llminference.LlmInference
+import com.google.mediapipe.tasks.genai.llminference.LlmInferenceSession
+import com.google.mediapipe.tasks.genai.llminference.GraphOptions
 
 class LocalLLMManager(
     private val context: Context
@@ -69,6 +76,46 @@ class LocalLLMManager(
         }
     }
 
+    fun generateWithImage(prompt: String, imageUri: Uri): String {
+        return try {
+            when (loadedRuntime) {
+                ModelRuntime.MEDIAPIPE -> {
+                    val engine = llmInference
+                        ?: return "MediaPipe model is not loaded yet."
+                    val image = BitmapImageBuilder(context, imageUri).build()
+                    val sessionOptions = LlmInferenceSession.LlmInferenceSessionOptions.builder()
+                        .setGraphOptions(
+                            GraphOptions.builder()
+                                .setEnableVisionModality(true)
+                                .build()
+                        )
+                        .build()
+
+                    LlmInferenceSession.createFromOptions(engine, sessionOptions).use { session ->
+                        session.addImage(image)
+                        session.addQueryChunk(prompt)
+                        session.generateResponse()
+                    }
+                }
+
+                ModelRuntime.LITERTLM -> {
+                    val conversation = liteRtConversation
+                        ?: return "LiteRT-LM model is not loaded yet."
+                    val imagePath = cacheImageForLiteRt(imageUri)
+                    val contents = Contents.of(
+                        Content.ImageFile(imagePath),
+                        Content.Text(prompt)
+                    )
+                    conversation.sendMessage(contents).toString()
+                }
+
+                null -> "Model is not loaded yet. Download and load a model first."
+            }
+        } catch (e: Exception) {
+            "Failed to analyze image: ${e.message ?: "unknown error"}"
+        }
+    }
+
     fun close() {
         llmInference?.close()
         llmInference = null
@@ -87,6 +134,7 @@ class LocalLLMManager(
         val options = LlmInference.LlmInferenceOptions.builder()
             .setModelPath(modelPath)
             .setMaxTokens(DEFAULT_MAX_TOKENS)
+            .setMaxNumImages(1)
             .build()
 
         llmInference = LlmInference.createFromOptions(context, options)
@@ -99,6 +147,7 @@ class LocalLLMManager(
         val engineConfig = EngineConfig(
             modelPath = modelPath,
             backend = Backend.CPU(),
+            visionBackend = Backend.CPU(),
             cacheDir = context.cacheDir.absolutePath
         )
 
@@ -108,5 +157,15 @@ class LocalLLMManager(
         liteRtEngine = engine
         liteRtConversation = engine.createConversation()
         loadedRuntime = ModelRuntime.LITERTLM
+    }
+
+    private fun cacheImageForLiteRt(imageUri: Uri): String {
+        val targetFile = File(context.cacheDir, "litertlm_input_image")
+        context.contentResolver.openInputStream(imageUri)?.use { inputStream ->
+            targetFile.outputStream().use { outputStream ->
+                inputStream.copyTo(outputStream)
+            }
+        } ?: error("Failed to read the selected image.")
+        return targetFile.absolutePath
     }
 }

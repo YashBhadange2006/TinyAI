@@ -65,6 +65,7 @@ dependencies {
     //LitertLM Dependency
     implementation("com.google.ai.edge.litertlm:litertlm-android:0.11.0")
     //MediaPipe Dependency
+    implementation("com.google.mediapipe:tasks-core:0.10.29")
     implementation("com.google.mediapipe:tasks-genai:0.10.29")
 
     implementation(libs.androidx.room.runtime)
