@@ -9,13 +9,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -30,21 +28,19 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
@@ -66,8 +62,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.jeziellago.compose.markdowntext.MarkdownText
 import kotlinx.coroutines.launch
 
@@ -83,9 +77,11 @@ private data class PendingDeleteSession(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ChatUI() {
+fun ChatUI(
+    chatViewModel: ChatViewModel,
+    onOpenModelSettings: () -> Unit
+) {
     val listState = rememberLazyListState()
-    val chatViewModel: ChatViewModel = viewModel()
     val messages = chatViewModel.messages
     val isTyping = chatViewModel.isTyping
 
@@ -95,7 +91,6 @@ fun ChatUI() {
         }
     }
 
-    var showModelDialog by remember { mutableStateOf(false) }
     var pendingDeleteSession by remember { mutableStateOf<PendingDeleteSession?>(null) }
     val statusLabel = when {
         chatViewModel.isModelLoaded -> "Ready"
@@ -111,14 +106,20 @@ fun ChatUI() {
     val scope = rememberCoroutineScope()
 
     ModalNavigationDrawer(
+        drawerState = drawerState,
         drawerContent = {
             ModalDrawerSheet {
                 Column(
-                    modifier = Modifier.padding(horizontal = 16.dp)
+                    modifier = Modifier
+                        .padding(horizontal = 16.dp)
                         .verticalScroll(rememberScrollState())
                 ) {
                     Spacer(Modifier.height(12.dp))
-                    Text("PocketAI", modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.titleLarge)
+                    Text(
+                        text = "PocketAI",
+                        modifier = Modifier.padding(16.dp),
+                        style = MaterialTheme.typography.titleLarge
+                    )
                     HorizontalDivider()
 
                     NavigationDrawerItem(
@@ -132,13 +133,15 @@ fun ChatUI() {
                         },
                         onClick = {
                             chatViewModel.startNewChat()
-                            scope.launch {
-                                drawerState.close()
-                            }
+                            scope.launch { drawerState.close() }
                         }
                     )
 
-                    Text("Chat Sessions", modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        text = "Chat Sessions",
+                        modifier = Modifier.padding(16.dp),
+                        style = MaterialTheme.typography.titleMedium
+                    )
                     if (chatViewModel.chatSessions.isEmpty()) {
                         Text(
                             text = "No saved chats yet",
@@ -163,9 +166,7 @@ fun ChatUI() {
                                     },
                                     onClick = {
                                         chatViewModel.loadChatSession(session.id)
-                                        scope.launch {
-                                            drawerState.close()
-                                        }
+                                        scope.launch { drawerState.close() }
                                     }
                                 )
                                 IconButton(
@@ -187,39 +188,39 @@ fun ChatUI() {
 
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
-                    Text("Section 2", modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        text = "Section 2",
+                        modifier = Modifier.padding(16.dp),
+                        style = MaterialTheme.typography.titleMedium
+                    )
                     NavigationDrawerItem(
                         label = { Text("Settings") },
                         selected = false,
                         icon = { Icon(Icons.Outlined.Settings, contentDescription = null) },
-                        badge = { Text("20") }, // Placeholder
-                        onClick = { /* Handle click */ }
+                        onClick = {
+                            scope.launch { drawerState.close() }
+                            chatViewModel.refreshModelStatus()
+                            onOpenModelSettings()
+                        }
                     )
                     NavigationDrawerItem(
                         label = { Text("Help and feedback") },
                         selected = false,
                         icon = { Icon(Icons.AutoMirrored.Outlined.Send, contentDescription = null) },
-                        onClick = { /* Handle click */ },
+                        onClick = {}
                     )
                     Spacer(Modifier.height(12.dp))
                 }
             }
-        },
-        drawerState = drawerState
+        }
     ) {
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = {
-                        Text("PocketAI Chat")
-                    },
+                    title = { Text("PocketAI Chat") },
                     navigationIcon = {
                         IconButton(
-                            onClick = {
-                                scope.launch {
-                                    drawerState.open()
-                                }
-                            }
+                            onClick = { scope.launch { drawerState.open() } }
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Menu,
@@ -235,7 +236,7 @@ fun ChatUI() {
                         IconButton(
                             onClick = {
                                 chatViewModel.refreshModelStatus()
-                                showModelDialog = true
+                                onOpenModelSettings()
                             }
                         ) {
                             Icon(
@@ -261,15 +262,6 @@ fun ChatUI() {
                 modifier = Modifier.padding(padding)
             )
         }
-    }
-
-    if (showModelDialog) {
-        ModelPickerDialog(
-            chatViewModel = chatViewModel,
-            onDismiss = {
-                showModelDialog = false
-            }
-        )
     }
 
     pendingDeleteSession?.let { session ->
@@ -303,151 +295,6 @@ fun ChatUI() {
                 }
             }
         )
-    }
-}
-
-@Composable
-fun ModelPickerDialog(
-    chatViewModel: ChatViewModel,
-    onDismiss: () -> Unit
-) {
-    val allModels = ModelCatalog.supportedModels
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Column(modifier = Modifier.padding(12.dp)) {
-                Text("Local model")
-                Text(
-                    text = "Downloads supported .task or .litertlm models on demand, then loads them locally on device",
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
-
-        },
-        text = {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 420.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                items(allModels){ model->
-                    ModelItemRow(
-                        model = model,
-                        status = chatViewModel.getModelStatus(model),
-                        onDownload = {chatViewModel.downloadSelectedModel(model)},
-                        onDelete = { chatViewModel.deleteSelectedModel(model) },
-                        onLoad = {
-                            chatViewModel.loadSelectedModel(model)
-                            onDismiss()
-                        },
-                        isLoading = chatViewModel.isLoadingModel(model),
-                        isLoaded = chatViewModel.isLoadedModel(model)
-                    )
-                }
-            }
-        },
-        confirmButton = {}
-    )
-}
-
-@Composable
-fun ModelItemRow(
-    model : ModelSpec,
-    status : ModelDownloadStatus,
-    onDownload: () -> Unit,
-    onDelete: () -> Unit,
-    onLoad: () -> Unit,
-    isLoading: Boolean,
-    isLoaded: Boolean
-){
-    Card(
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        modifier = Modifier.fillMaxWidth()
-    ){
-        Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ){
-            Text(text = model.displayName, style = MaterialTheme.typography.titleMedium)
-            Text(text = "Size: ${model.sizeLabel}", style = MaterialTheme.typography.labelSmall)
-
-            if (status.isDownloading) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Downloading",
-                            style = MaterialTheme.typography.labelSmall
-                        )
-                        Text(
-                            text = "${status.progressPercent ?: 0}%",
-                            style = MaterialTheme.typography.labelSmall
-                        )
-                    }
-                    val brightPink = Color(0xFFB031F3)
-                    LinearProgressIndicator(
-                        progress = { ((status.progressPercent ?: 0).coerceIn(0, 100)) / 100f },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 4.dp),
-                        color = brightPink
-                    )
-                }
-            }
-
-            when {
-                status.isDownloading -> {
-                    Button(
-                        onClick = {},
-                        enabled = false,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Downloading...")
-                    }
-                }
-                status.isDownloaded -> {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Button(
-                            onClick = onDelete,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text("Delete", fontSize = 12.sp)
-                        }
-                        Button(
-                            onClick = onLoad,
-                            enabled = !isLoading && !isLoaded,
-                            modifier = Modifier.weight(1f)
-                        ){
-                            Text(
-                                if (isLoading) "Loading..."
-                                else if (isLoaded) "Loaded"
-                                else "Load Model",
-                                fontSize = 12.sp
-                            )
-                        }
-                    }
-                }
-                else -> {
-                    Button(
-                        onClick = onDownload,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Download Model")
-                    }
-                }
-            }
-        }
     }
 }
 
@@ -524,9 +371,7 @@ fun Dot(alpha: Float) {
 fun MessageBubble(message: Message) {
     Box(
         modifier = Modifier.fillMaxWidth(),
-        contentAlignment =
-            if (message.isUser) Alignment.CenterEnd
-            else Alignment.CenterStart
+        contentAlignment = if (message.isUser) Alignment.CenterEnd else Alignment.CenterStart
     ) {
         Card(
             modifier = Modifier.padding(8.dp),
@@ -562,7 +407,7 @@ fun ChatInput(
         modifier = Modifier
             .fillMaxWidth()
             .padding(8.dp)
-            .padding(8.dp, 50.dp),
+            .padding(horizontal = 8.dp, vertical = 50.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         TextField(
