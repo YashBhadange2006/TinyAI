@@ -58,8 +58,10 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation("androidx.compose.material:material-icons-core")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.10.0")
-    //Github repo used for converting normal AI markdown text to user readable interface
-    implementation("com.github.jeziellago:compose-markdown:0.7.2")
+    implementation("io.noties.markwon:core:4.6.2")
+    implementation("io.noties.markwon:inline-parser:4.6.2")
+    implementation("io.noties.markwon:ext-latex:4.6.2")
+    implementation("io.noties.markwon:ext-tables:4.6.2")
     //LitertLM Dependency
     implementation("com.google.ai.edge.litertlm:litertlm-android:0.11.0")
     //MediaPipe Dependency

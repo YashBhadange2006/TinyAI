@@ -1,5 +1,7 @@
 package com.example.localmodelai.chatui
 
+import android.text.method.LinkMovementMethod
+import android.widget.TextView
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -61,8 +63,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
-import dev.jeziellago.compose.markdowntext.MarkdownText
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+import io.noties.markwon.Markwon
+import io.noties.markwon.ext.latex.JLatexMathPlugin
+import io.noties.markwon.ext.tables.TablePlugin
+import io.noties.markwon.inlineparser.MarkwonInlineParserPlugin
 import kotlinx.coroutines.launch
 
 data class Message(
@@ -384,14 +394,59 @@ fun MessageBubble(message: Message) {
                     style = MaterialTheme.typography.bodyMedium
                 )
             } else {
-                MarkdownText(
-                    markdown = message.text,
-                    modifier = Modifier.padding(12.dp),
-                    style = MaterialTheme.typography.bodyMedium,
-                    linkColor = MaterialTheme.colorScheme.primary
+                MarkdownMessage(
+                    markdown = normalizeMarkdownForMarkwon(message.text),
+                    modifier = Modifier.padding(12.dp)
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun MarkdownMessage(
+    markdown: String,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val density = LocalDensity.current
+    val textColor = MaterialTheme.colorScheme.onSurface.toArgb()
+    val linkColor = MaterialTheme.colorScheme.primary.toArgb()
+    val latexTextSize = with(density) { 16.sp.toPx() }
+    val markwon = remember(context, latexTextSize) {
+        Markwon.builder(context)
+            .usePlugin(MarkwonInlineParserPlugin.create())
+            .usePlugin(
+                JLatexMathPlugin.create(latexTextSize) { builder ->
+                    builder.inlinesEnabled(true)
+                }
+            )
+            .usePlugin(TablePlugin.create(context))
+            .build()
+    }
+
+    AndroidView(
+        modifier = modifier,
+        factory = { viewContext ->
+            TextView(viewContext).apply {
+                setTextIsSelectable(false)
+                movementMethod = LinkMovementMethod.getInstance()
+                textSize = 16f
+            }
+        },
+        update = { textView ->
+            textView.setTextColor(textColor)
+            textView.setLinkTextColor(linkColor)
+            markwon.setMarkdown(textView, markdown)
+        }
+    )
+}
+
+private fun normalizeMarkdownForMarkwon(text: String): String {
+    val inlineMathRegex = Regex("""(?<!\$)\$(?!\$)(.+?)(?<!\$)\$(?!\$)""")
+    return text.replace(inlineMathRegex) { matchResult ->
+        val expression = matchResult.groupValues[1].trim()
+        if (expression.isEmpty()) "" else "\$\$$expression\$\$"
     }
 }
 
