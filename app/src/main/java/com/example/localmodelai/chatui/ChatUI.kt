@@ -1,5 +1,7 @@
 package com.example.localmodelai.chatui
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -36,6 +38,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Menu
@@ -414,6 +417,7 @@ fun Dot(alpha: Float) {
 
 @Composable
 fun MessageBubble(message: Message) {
+    val context = LocalContext.current
     Box(
         modifier = Modifier.fillMaxWidth(),
         contentAlignment = if (message.isUser) Alignment.CenterEnd else Alignment.CenterStart
@@ -422,17 +426,36 @@ fun MessageBubble(message: Message) {
             modifier = Modifier.padding(8.dp),
             shape = RoundedCornerShape(16.dp)
         ) {
-            if (message.isUser) {
-                Text(
-                    text = message.text,
-                    modifier = Modifier.padding(12.dp),
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            } else {
-                MarkdownMessage(
-                    markdown = normalizeMarkdownForMarkwon(message.text),
-                    modifier = Modifier.padding(12.dp)
-                )
+            Column(
+                modifier = Modifier.padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                if (message.isUser) {
+                    Text(
+                        text = message.text,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                } else {
+                    MarkdownMessage(
+                        markdown = normalizeMarkdownForMarkwon(message.text)
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    IconButton(
+                        onClick = {
+                            copyMessageToClipboard(context, message.text)
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.DateRange,
+                            contentDescription = "Copy message"
+                        )
+                    }
+                }
             }
         }
     }
@@ -576,6 +599,14 @@ private fun resolveFileName(
             if (nameIndex != -1 && cursor.moveToFirst()) {
                 return cursor.getString(nameIndex)
             }
-        }
+    }
     return uri.lastPathSegment ?: "Selected file"
+}
+
+private fun copyMessageToClipboard(
+    context: Context,
+    text: String
+) {
+    val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+    clipboardManager.setPrimaryClip(ClipData.newPlainText("PocketAI message", text))
 }
