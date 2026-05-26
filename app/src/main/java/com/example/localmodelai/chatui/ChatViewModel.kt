@@ -1,6 +1,7 @@
 package com.example.localmodelai.chatui
 
 import android.app.Application
+import android.net.Uri
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -50,6 +51,12 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         private set
 
     var chatSessions by mutableStateOf<List<ChatSession>>(emptyList())
+        private set
+
+    var selectedAttachmentUri by mutableStateOf<Uri?>(null)
+        private set
+
+    var selectedAttachmentName by mutableStateOf<String?>(null)
         private set
 
     init {
@@ -180,6 +187,20 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun sendMessage(prompt: String) {
+        if (selectedAttachmentUri != null) {
+            if (prompt.isNotBlank()) {
+                messages.add(Message(prompt, true))
+            }
+            messages.add(
+                Message(
+                    "Attached file selected: ${selectedAttachmentName ?: "Unnamed file"}.\n\nFile understanding is not implemented yet, so right now the app can accept the file but cannot read it into the model.",
+                    false
+                )
+            )
+            clearSelectedAttachment()
+            return
+        }
+
         messages.add(Message(prompt, true))
 
         viewModelScope.launch {
@@ -266,6 +287,16 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     fun isLoadingModel(model: ModelSpec): Boolean = loadingModelId == model.id && isModelLoading
 
     fun isLoadedModel(model: ModelSpec): Boolean = loadedModelId == model.id
+
+    fun setSelectedAttachment(uri: Uri, displayName: String) {
+        selectedAttachmentUri = uri
+        selectedAttachmentName = displayName
+    }
+
+    fun clearSelectedAttachment() {
+        selectedAttachmentUri = null
+        selectedAttachmentName = null
+    }
 
     fun startNewChat() {
         currentSessionId = null

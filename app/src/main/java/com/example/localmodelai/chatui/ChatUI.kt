@@ -1,7 +1,13 @@
 package com.example.localmodelai.chatui
 
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.provider.OpenableColumns
 import android.text.method.LinkMovementMethod
 import android.widget.TextView
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -29,6 +35,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Menu
@@ -66,9 +73,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import com.example.localmodelai.ui.theme.LocalModelAITheme
 import io.noties.markwon.Markwon
 import io.noties.markwon.ext.latex.JLatexMathPlugin
 import io.noties.markwon.ext.tables.TablePlugin
@@ -94,6 +103,21 @@ fun ChatUI(
     val listState = rememberLazyListState()
     val messages = chatViewModel.messages
     val isTyping = chatViewModel.isTyping
+    val context = LocalContext.current
+    val attachmentPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            try {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            } catch (_: SecurityException) {
+            }
+            chatViewModel.setSelectedAttachment(uri, resolveFileName(context, uri))
+        }
+    }
 
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) {
@@ -259,6 +283,13 @@ fun ChatUI(
             },
             bottomBar = {
                 ChatInput(
+                    selectedAttachmentName = chatViewModel.selectedAttachmentName,
+                    onAttachClick = {
+                        attachmentPicker.launch(arrayOf("*/*"))
+                    },
+                    onClearAttachment = {
+                        chatViewModel.clearSelectedAttachment()
+                    },
                     onSend = { userText ->
                         chatViewModel.sendMessage(userText)
                     }
@@ -452,42 +483,96 @@ private fun normalizeMarkdownForMarkwon(text: String): String {
 
 @Composable
 fun ChatInput(
+    selectedAttachmentName: String?,
+    onAttachClick: () -> Unit,
+    onClearAttachment: () -> Unit,
     onSend: (String) -> Unit
 ) {
     var text by remember {
         mutableStateOf("")
     }
 
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(8.dp)
             .padding(horizontal = 8.dp, vertical = 50.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        TextField(
-            value = text,
-            onValueChange = {
-                text = it
-            },
-            modifier = Modifier.weight(1f),
-            placeholder = {
-                Text("Type a message...")
-            }
-        )
-
-        IconButton(
-            onClick = {
-                if (text.isNotBlank()) {
-                    onSend(text)
-                    text = ""
+        if (selectedAttachmentName != null) {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "Attached: $selectedAttachmentName",
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    IconButton(onClick = onClearAttachment) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Remove attachment"
+                        )
+                    }
                 }
             }
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = Icons.Default.Send,
-                contentDescription = "Send"
+            IconButton(
+                onClick = onAttachClick,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Attach file"
+                )
+            }
+            TextField(
+                value = text,
+                onValueChange = {
+                    text = it
+                },
+                modifier = Modifier.weight(1f),
+                placeholder = {
+                    Text("Type a message...")
+                }
             )
+
+            IconButton(
+                onClick = {
+                    if (text.isNotBlank() || selectedAttachmentName != null) {
+                        onSend(text)
+                        text = ""
+                    }
+                }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Send,
+                    contentDescription = "Send"
+                )
+            }
         }
     }
+}
+
+private fun resolveFileName(
+    context: Context,
+    uri: Uri
+): String {
+    context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
+        ?.use { cursor ->
+            val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+            if (nameIndex != -1 && cursor.moveToFirst()) {
+                return cursor.getString(nameIndex)
+            }
+        }
+    return uri.lastPathSegment ?: "Selected file"
 }
