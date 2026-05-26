@@ -4,14 +4,11 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import com.example.localmodelai.chatui.ChatUI
+import com.example.localmodelai.navigation.PocketAINavigation
 import com.example.localmodelai.ui.theme.LocalModelAITheme
 
 class MainActivity : ComponentActivity() {
@@ -20,7 +17,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             LocalModelAITheme {
-                ChatUI()
+                PocketAINavigation()
             }
         }
     }
