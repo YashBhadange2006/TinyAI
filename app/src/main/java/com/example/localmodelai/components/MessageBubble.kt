@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -72,12 +73,12 @@ fun MessageBubble(message: Message) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp),
+            .padding(horizontal = 16.dp, vertical = 1.dp),
         contentAlignment = if (message.isUser) Alignment.CenterEnd else Alignment.CenterStart
     ) {
         Column(
             modifier = Modifier
-                .widthIn(max = 290.dp)
+                .widthIn(max = if (message.isUser) 290.dp else 330.dp)
                 .clip(elegantShape)
                 .background(backgroundColor)
                 .padding(horizontal = 16.dp, vertical = 12.dp),
@@ -106,12 +107,13 @@ fun MessageBubble(message: Message) {
     ) {
         IconButton(
             onClick = { copyMessageToClipboard(context, message.text) },
-            modifier = Modifier.padding(top = 4.dp)
+            modifier = Modifier.padding(top = 1.dp)
         ) {
             Icon(
                 imageVector = Icons.Default.DateRange,
                 contentDescription = "Copy message",
-                tint = contentColor.copy(alpha = 0.5f)
+                tint = contentColor.copy(alpha = 0.5f),
+                modifier = Modifier.size(20.dp)
             )
         }
     }
