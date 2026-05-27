@@ -62,7 +62,10 @@ import kotlinx.coroutines.launch
 
 data class Message(
     val text: String,
-    val isUser: Boolean
+    val isUser: Boolean,
+    val messageType: String = "text",
+    val imagePath: String? = null,
+    val imageName: String? = null
 )
 
 
@@ -345,5 +348,4 @@ private fun resolveFileName(
     }
     return uri.lastPathSegment ?: "Selected file"
 }
-
 

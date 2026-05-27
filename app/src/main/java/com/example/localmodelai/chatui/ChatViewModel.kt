@@ -2,6 +2,7 @@ package com.example.localmodelai.chatui
 
 import android.app.Application
 import android.net.Uri
+import java.io.File
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -195,11 +196,23 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             val attachmentName = selectedAttachmentName ?: "Selected image"
             val attachmentMimeType = selectedAttachmentMimeType
             val effectivePrompt = prompt.ifBlank { "Describe this image." }
-            val userMessage = "[Image] $attachmentName\n$effectivePrompt"
-
-            messages.add(Message(userMessage, true))
+            val userMessage = effectivePrompt
 
             viewModelScope.launch {
+                val savedImagePath = withContext(Dispatchers.IO) {
+                    attachmentUri?.let { copyImageToAppStorage(it, attachmentName) }
+                }
+
+                messages.add(
+                    Message(
+                        text = userMessage,
+                        isUser = true,
+                        messageType = "image",
+                        imagePath = savedImagePath,
+                        imageName = attachmentName
+                    )
+                )
+
                 if (!ensureModelLoaded()) {
                     messages.add(
                         Message("The model is not ready yet. Download and load ${activeModel.displayName} from the model menu first.", false)
@@ -207,7 +220,13 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     return@launch
                 }
 
-                persistMessage(userMessage, isUser = true)
+                persistMessage(
+                    text = userMessage,
+                    isUser = true,
+                    messageType = "image",
+                    imagePath = savedImagePath,
+                    imageName = attachmentName
+                )
                 isTyping = true
                 val reply = withContext(Dispatchers.IO) {
                     when {
@@ -376,7 +395,10 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     storedMessages.map {
                         Message(
                             text = it.text,
-                            isUser = it.isUser
+                            isUser = it.isUser,
+                            messageType = it.messageType,
+                            imagePath = it.imagePath,
+                            imageName = it.imageName
                         )
                     }
                 )
@@ -462,7 +484,10 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     storedMessages.map {
                         Message(
                             text = it.text,
-                            isUser = it.isUser
+                            isUser = it.isUser,
+                            messageType = it.messageType,
+                            imagePath = it.imagePath,
+                            imageName = it.imageName
                         )
                     }
                 )
@@ -478,7 +503,13 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    private suspend fun persistMessage(text: String, isUser: Boolean) {
+    private suspend fun persistMessage(
+        text: String,
+        isUser: Boolean,
+        messageType: String = "text",
+        imagePath: String? = null,
+        imageName: String? = null
+    ) {
         val sessionId = ensureSessionExists(firstMessageText = text)
         withContext(Dispatchers.IO) {
             chatDao.insertMessage(
@@ -486,6 +517,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     sessionId = sessionId,
                     text = text,
                     isUser = isUser,
+                    messageType = messageType,
+                    imagePath = imagePath,
+                    imageName = imageName,
                     timestamp = System.currentTimeMillis()
                 )
             )
@@ -527,6 +561,22 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 )
             )
         }
+    }
+
+    private fun copyImageToAppStorage(uri: Uri, imageName: String): String {
+        val safeName = imageName
+            .replace(Regex("[^A-Za-z0-9._-]"), "_")
+            .ifBlank { "image_${System.currentTimeMillis()}" }
+        val imageDir = File(getApplication<Application>().filesDir, "chat_images").apply {
+            mkdirs()
+        }
+        val targetFile = File(imageDir, "${System.currentTimeMillis()}_$safeName")
+        getApplication<Application>().contentResolver.openInputStream(uri)?.use { input ->
+            targetFile.outputStream().use { output ->
+                input.copyTo(output)
+            }
+        } ?: error("Unable to read selected image")
+        return targetFile.absolutePath
     }
 
     override fun onCleared() {

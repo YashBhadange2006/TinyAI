@@ -3,29 +3,40 @@ package com.example.localmodelai.components
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.graphics.BitmapFactory
 import android.text.method.LinkMovementMethod
 import android.widget.TextView
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -41,6 +52,7 @@ import io.noties.markwon.inlineparser.MarkwonInlineParserPlugin
 @Composable
 fun MessageBubble(message: Message) {
     val context = LocalContext.current
+    var showImagePreview by remember(message.imagePath) { mutableStateOf(false) }
 
     val elegantShape = if (message.isUser) {
         RoundedCornerShape(
@@ -84,7 +96,39 @@ fun MessageBubble(message: Message) {
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            if (message.isUser) {
+            if (message.messageType == "image" && message.imagePath != null) {
+                val bitmap = remember(message.imagePath) {
+                    BitmapFactory.decodeFile(message.imagePath)
+                }
+                bitmap?.let {
+                    Image(
+                        bitmap = it.asImageBitmap(),
+                        contentDescription = message.imageName ?: "Attached image",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 220.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .clickable { showImagePreview = true },
+                        contentScale = ContentScale.Crop
+                    )
+                }
+                message.imageName?.let { imageName ->
+                    Text(
+                        text = imageName,
+                        style = MaterialTheme.typography.labelSmall.copy(color = contentColor)
+                    )
+                }
+                if (message.text.isNotBlank()) {
+                    Text(
+                        text = message.text,
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            color = contentColor,
+                            fontSize = 15.sp,
+                            lineHeight = 22.sp
+                        )
+                    )
+                }
+            } else if (message.isUser) {
                 Text(
                     text = message.text,
                     style = MaterialTheme.typography.bodyMedium.copy(
@@ -118,6 +162,25 @@ fun MessageBubble(message: Message) {
         }
     }
 
+    if (showImagePreview && message.imagePath != null) {
+        val previewBitmap = remember(message.imagePath) {
+            BitmapFactory.decodeFile(message.imagePath)
+        }
+        AlertDialog(
+            onDismissRequest = { showImagePreview = false },
+            confirmButton = {},
+            text = {
+                previewBitmap?.let {
+                    Image(
+                        bitmap = it.asImageBitmap(),
+                        contentDescription = message.imageName ?: "Image preview",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Fit
+                    )
+                }
+            }
+        )
+    }
 }
 
 @Composable
