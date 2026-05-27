@@ -195,8 +195,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             val attachmentName = selectedAttachmentName ?: "Selected image"
             val attachmentMimeType = selectedAttachmentMimeType
             val effectivePrompt = prompt.ifBlank { "Describe this image." }
+            val userMessage = "[Image] $attachmentName\n$effectivePrompt"
 
-            messages.add(Message("[Image] $attachmentName\n$effectivePrompt", true))
+            messages.add(Message(userMessage, true))
 
             viewModelScope.launch {
                 if (!ensureModelLoaded()) {
@@ -206,6 +207,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     return@launch
                 }
 
+                persistMessage(userMessage, isUser = true)
                 isTyping = true
                 val reply = withContext(Dispatchers.IO) {
                     when {
@@ -219,6 +221,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }
                 messages.add(Message(reply, false))
+                persistMessage(reply, isUser = false)
                 clearSelectedAttachment()
                 isTyping = false
             }
