@@ -76,10 +76,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import com.example.localmodelai.components.MessageBubble
 import com.example.localmodelai.ui.theme.LocalModelAITheme
 import io.noties.markwon.Markwon
 import io.noties.markwon.ext.latex.JLatexMathPlugin
@@ -415,98 +417,8 @@ fun Dot(alpha: Float) {
     )
 }
 
-@Composable
-fun MessageBubble(message: Message) {
-    val context = LocalContext.current
-    Box(
-        modifier = Modifier.fillMaxWidth(),
-        contentAlignment = if (message.isUser) Alignment.CenterEnd else Alignment.CenterStart
-    ) {
-        Card(
-            modifier = Modifier.padding(8.dp),
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                if (message.isUser) {
-                    Text(
-                        text = message.text,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                } else {
-                    MarkdownMessage(
-                        markdown = normalizeMarkdownForMarkwon(message.text)
-                    )
-                }
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    IconButton(
-                        onClick = {
-                            copyMessageToClipboard(context, message.text)
-                        }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.DateRange,
-                            contentDescription = "Copy message"
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
 
-@Composable
-private fun MarkdownMessage(
-    markdown: String,
-    modifier: Modifier = Modifier
-) {
-    val context = LocalContext.current
-    val density = LocalDensity.current
-    val textColor = MaterialTheme.colorScheme.onSurface.toArgb()
-    val linkColor = MaterialTheme.colorScheme.primary.toArgb()
-    val latexTextSize = with(density) { 16.sp.toPx() }
-    val markwon = remember(context, latexTextSize) {
-        Markwon.builder(context)
-            .usePlugin(MarkwonInlineParserPlugin.create())
-            .usePlugin(
-                JLatexMathPlugin.create(latexTextSize) { builder ->
-                    builder.inlinesEnabled(true)
-                }
-            )
-            .usePlugin(TablePlugin.create(context))
-            .build()
-    }
-
-    AndroidView(
-        modifier = modifier,
-        factory = { viewContext ->
-            TextView(viewContext).apply {
-                setTextIsSelectable(false)
-                movementMethod = LinkMovementMethod.getInstance()
-                textSize = 16f
-            }
-        },
-        update = { textView ->
-            textView.setTextColor(textColor)
-            textView.setLinkTextColor(linkColor)
-            markwon.setMarkdown(textView, markdown)
-        }
-    )
-}
-
-private fun normalizeMarkdownForMarkwon(text: String): String {
-    val inlineMathRegex = Regex("""(?<!\$)\$(?!\$)(.+?)(?<!\$)\$(?!\$)""")
-    return text.replace(inlineMathRegex) { matchResult ->
-        val expression = matchResult.groupValues[1].trim()
-        if (expression.isEmpty()) "" else "\$\$$expression\$\$"
-    }
-}
 
 @Composable
 fun ChatInput(
@@ -603,10 +515,4 @@ private fun resolveFileName(
     return uri.lastPathSegment ?: "Selected file"
 }
 
-private fun copyMessageToClipboard(
-    context: Context,
-    text: String
-) {
-    val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-    clipboardManager.setPrimaryClip(ClipData.newPlainText("PocketAI message", text))
-}
+
