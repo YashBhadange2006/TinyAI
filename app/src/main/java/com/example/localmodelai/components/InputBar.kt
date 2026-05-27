@@ -101,6 +101,8 @@ fun ChatInput(
                     onValueChange = { text = it },
                     modifier = Modifier.weight(1f),
                     placeholder = { Text("Type a message...") },
+                    minLines = 1,
+                    maxLines = 10,
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Color.Transparent,
                         unfocusedContainerColor = Color.Transparent,
