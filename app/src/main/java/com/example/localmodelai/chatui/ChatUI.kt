@@ -56,6 +56,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.example.localmodelai.components.ChatInput
 import com.example.localmodelai.components.MessageBubble
 import com.example.localmodelai.navigation.AppNavigationDrawer
 import kotlinx.coroutines.launch
@@ -249,90 +250,6 @@ fun Dot(alpha: Float) {
                 CircleShape
             )
     )
-}
-
-
-
-
-@Composable
-fun ChatInput(
-    selectedAttachmentName: String?,
-    onAttachClick: () -> Unit,
-    onClearAttachment: () -> Unit,
-    onSend: (String) -> Unit
-) {
-    var text by remember {
-        mutableStateOf("")
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 16.dp, end = 16.dp, bottom = 50.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        if (selectedAttachmentName != null) {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "Attached: $selectedAttachmentName",
-                        modifier = Modifier.weight(1f),
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    IconButton(onClick = onClearAttachment) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Remove attachment"
-                        )
-                    }
-                }
-            }
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(
-                onClick = onAttachClick,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Attach image"
-                )
-            }
-            TextField(
-                value = text,
-                onValueChange = {
-                    text = it
-                },
-                modifier = Modifier.weight(1f),
-                placeholder = {
-                    Text("Type a message...")
-                }
-            )
-
-            IconButton(
-                onClick = {
-                    if (text.isNotBlank() || selectedAttachmentName != null) {
-                        onSend(text)
-                        text = ""
-                    }
-                }
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Send,
-                    contentDescription = "Send"
-                )
-            }
-        }
-    }
 }
 
 private fun resolveFileName(
