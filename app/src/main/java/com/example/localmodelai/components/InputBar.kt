@@ -1,27 +1,19 @@
 package com.example.localmodelai.components
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Send
-import androidx.compose.material3.Card
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -31,75 +23,112 @@ fun ChatInput(
     onClearAttachment: () -> Unit,
     onSend: (String) -> Unit
 ) {
-    var text by remember {
-        mutableStateOf("")
-    }
+    var text by remember { mutableStateOf("") }
 
-    Column(
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 16.dp, end = 16.dp, bottom = 50.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+            .padding(horizontal = 16.dp)
+            .padding(bottom = 8.dp)
+            .navigationBarsPadding()
+            .imePadding(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        if (selectedAttachmentName != null) {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "Attached: $selectedAttachmentName",
-                        modifier = Modifier.weight(1f),
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    IconButton(onClick = onClearAttachment) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Remove attachment"
-                        )
-                    }
-                }
-            }
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp)
         ) {
-            IconButton(
-                onClick = onAttachClick,
+            AnimatedVisibility(
+                visible = selectedAttachmentName != null,
+                enter = expandVertically(),
+                exit = shrinkVertically()
             ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Attach image"
-                )
-            }
-            TextField(
-                value = text,
-                onValueChange = {
-                    text = it
-                },
-                modifier = Modifier.weight(1f),
-                placeholder = {
-                    Text("Type a message...")
-                }
-            )
-
-            IconButton(
-                onClick = {
-                    if (text.isNotBlank() || selectedAttachmentName != null) {
-                        onSend(text)
-                        text = ""
+                if (selectedAttachmentName != null) {
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 4.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 12.dp, end = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = selectedAttachmentName,
+                                modifier = Modifier.weight(1f),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            IconButton(onClick = onClearAttachment) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Remove attachment",
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
                     }
                 }
+            }
+
+            // Input Action Row
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Default.Send,
-                    contentDescription = "Send"
+                IconButton(onClick = onAttachClick) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Attach image",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+
+                TextField(
+                    value = text,
+                    onValueChange = { text = it },
+                    modifier = Modifier.weight(1f),
+                    placeholder = { Text("Type a message...") },
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        disabledContainerColor = Color.Transparent,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent
+                    )
                 )
+
+                IconButton(
+                    onClick = {
+                        if (text.isNotBlank() || selectedAttachmentName != null) {
+                            onSend(text)
+                            text = ""
+                        }
+                    },
+                    enabled = text.isNotBlank() || selectedAttachmentName != null
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Send,
+                        contentDescription = "Send",
+                        tint = if (text.isNotBlank() || selectedAttachmentName != null) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                        }
+                    )
+                }
             }
         }
     }

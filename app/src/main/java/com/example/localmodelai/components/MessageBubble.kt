@@ -79,9 +79,9 @@ fun MessageBubble(message: Message) {
     }
 
     val backgroundColor = if (message.isUser) {
-        MaterialTheme.colorScheme.primaryContainer
+        MaterialTheme.colorScheme.tertiaryContainer
     } else {
-        MaterialTheme.colorScheme.surfaceVariant
+        MaterialTheme.colorScheme.primaryContainer
     }
 
     val contentColor = if (message.isUser) {
