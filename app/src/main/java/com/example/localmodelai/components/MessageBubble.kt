@@ -48,6 +48,12 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -147,7 +153,9 @@ fun MessageBubble(message: Message) {
                 )
             } else if (message.isStreaming) {
                 Text(
-                    text = message.text,
+                    text = buildLightweightStreamingMarkdown(
+                        input = message.text
+                    ),
                     style = MaterialTheme.typography.bodyMedium.copy(
                         color = contentColor,
                         fontSize = 15.sp,
@@ -300,4 +308,53 @@ private fun copyMessageToClipboard(
 ) {
     val clipboardManager = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     clipboardManager.setPrimaryClip(ClipData.newPlainText("PocketAI message", text))
+}
+
+private fun buildLightweightStreamingMarkdown(input: String): AnnotatedString {
+    val normalized = input.replace("\r\n", "\n")
+    val builder = AnnotatedString.Builder()
+    var index = 0
+
+    while (index < normalized.length) {
+        if (normalized.startsWith("**", index)) {
+            val close = normalized.indexOf("**", startIndex = index + 2)
+            if (close > index + 2) {
+                val text = normalized.substring(index + 2, close)
+                builder.pushStyle(SpanStyle(fontWeight = FontWeight.SemiBold))
+                builder.append(text)
+                builder.pop()
+                index = close + 2
+                continue
+            }
+        }
+
+        if (normalized[index] == '*') {
+            val close = normalized.indexOf('*', startIndex = index + 1)
+            if (close > index + 1) {
+                val text = normalized.substring(index + 1, close)
+                builder.pushStyle(SpanStyle(fontStyle = FontStyle.Italic))
+                builder.append(text)
+                builder.pop()
+                index = close + 1
+                continue
+            }
+        }
+
+        if (normalized[index] == '`') {
+            val close = normalized.indexOf('`', startIndex = index + 1)
+            if (close > index + 1) {
+                val text = normalized.substring(index + 1, close)
+                builder.pushStyle(SpanStyle(fontFamily = FontFamily.Monospace))
+                builder.append(text)
+                builder.pop()
+                index = close + 1
+                continue
+            }
+        }
+
+        builder.append(normalized[index])
+        index++
+    }
+
+    return builder.toAnnotatedString()
 }
