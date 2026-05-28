@@ -32,7 +32,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     private var loadedModelId: String? = null
     private var downloadingModelId: String? = null
     private var loadingModelId: String? = null
-    private var currentSessionId: Long? = null
+    private var currentSessionId by mutableStateOf<Long?>(null)
 
     val messages = mutableStateListOf<Message>()
 
@@ -369,12 +369,12 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun loadChatSession(sessionId: Long) {
+        currentSessionId = sessionId
         viewModelScope.launch {
             val session = withContext(Dispatchers.IO) {
                 chatDao.getSessionById(sessionId)
             } ?: return@launch
 
-            currentSessionId = session.id
             session.modelName.takeIf { it.isNotBlank() }?.let { modelName ->
                 ModelCatalog.supportedModels.firstOrNull { it.displayName == modelName }?.let { model ->
                     activeModel = model
@@ -455,11 +455,19 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun restoreLatestSession() {
         viewModelScope.launch {
+            if (currentSessionId != null) {
+                return@launch
+            }
+
             val latestSession = withContext(Dispatchers.IO) {
                 chatDao.getLatestSession()
             }
 
             if (latestSession == null) {
+                return@launch
+            }
+
+            if (currentSessionId != null) {
                 return@launch
             }
 
