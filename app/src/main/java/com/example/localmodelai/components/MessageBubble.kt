@@ -145,6 +145,15 @@ fun MessageBubble(message: Message) {
                         lineHeight = 22.sp
                     )
                 )
+            } else if (message.isStreaming) {
+                Text(
+                    text = message.text,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        color = contentColor,
+                        fontSize = 15.sp,
+                        lineHeight = 22.sp
+                    )
+                )
             } else {
                 MarkdownMessage(
                     markdown = normalizeMarkdownForMarkwon(message.text),

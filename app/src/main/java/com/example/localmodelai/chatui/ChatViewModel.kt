@@ -258,14 +258,42 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             }
 
             persistMessage(prompt, isUser = true)
-            isTyping = true
             val contextualPrompt = buildContextualPrompt()
+            val assistantMessageIndex = messages.size
+            messages.add(Message(text = "...", isUser = false, isStreaming = true))
+            var streamedReply = ""
             val reply = withContext(Dispatchers.IO) {
-                llm.generate(contextualPrompt)
+                llm.generateStream(contextualPrompt) { partialReply ->
+                    if (partialReply.isEmpty()) {
+                        return@generateStream
+                    }
+                    streamedReply = mergeStreamChunk(
+                        currentText = streamedReply,
+                        incomingChunk = partialReply
+                    )
+                    viewModelScope.launch {
+                        updateAssistantMessage(
+                            index = assistantMessageIndex,
+                            text = streamedReply,
+                            isStreaming = true
+                        )
+                    }
+                }
             }
-            messages.add(Message(reply, false))
-            persistMessage(reply, isUser = false)
-            isTyping = false
+            val finalReply = when {
+                reply.isNotBlank() -> mergeStreamChunk(
+                    currentText = streamedReply,
+                    incomingChunk = reply
+                )
+                streamedReply.isNotBlank() -> streamedReply
+                else -> "No response generated."
+            }
+            updateAssistantMessage(
+                index = assistantMessageIndex,
+                text = finalReply,
+                isStreaming = false
+            )
+            persistMessage(finalReply, isUser = false)
         }
     }
 
@@ -569,6 +597,30 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 )
             )
         }
+    }
+
+    private fun updateAssistantMessage(
+        index: Int,
+        text: String,
+        isStreaming: Boolean
+    ) {
+        if (index in messages.indices) {
+            messages[index] = Message(
+                text = text,
+                isUser = false,
+                isStreaming = isStreaming
+            )
+        }
+    }
+
+    private fun mergeStreamChunk(currentText: String, incomingChunk: String): String {
+        if (incomingChunk.isEmpty()) {
+            return currentText
+        }
+        if (incomingChunk.startsWith(currentText)) {
+            return incomingChunk
+        }
+        return currentText + incomingChunk
     }
 
     private fun copyImageToAppStorage(uri: Uri, imageName: String): String {

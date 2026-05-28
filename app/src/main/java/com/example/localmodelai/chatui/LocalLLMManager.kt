@@ -14,6 +14,10 @@ import com.google.mediapipe.framework.image.BitmapImageBuilder
 import com.google.mediapipe.tasks.genai.llminference.LlmInference
 import com.google.mediapipe.tasks.genai.llminference.LlmInferenceSession
 import com.google.mediapipe.tasks.genai.llminference.GraphOptions
+import com.google.mediapipe.tasks.genai.llminference.ProgressListener
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.withContext
 
 class LocalLLMManager(
     private val context: Context
@@ -67,6 +71,45 @@ class LocalLLMManager(
                     val conversation = liteRtConversation
                         ?: return "LiteRT-LM model is not loaded yet."
                     conversation.sendMessage(prompt).toString()
+                }
+
+                null -> "Model is not loaded yet. Download and load a model first."
+            }
+        } catch (e: Exception) {
+            "Failed to generate response: ${e.message ?: "unknown error"}"
+        }
+    }
+
+    suspend fun generateStream(
+        prompt: String,
+        onPartial: (String) -> Unit
+    ): String {
+        return try {
+            when (loadedRuntime) {
+                ModelRuntime.MEDIAPIPE -> {
+                    val engine = llmInference
+                        ?: return "MediaPipe model is not loaded yet."
+                    val future = engine.generateResponseAsync(
+                        prompt,
+                        ProgressListener<String> { partialResponse, _ ->
+                            onPartial(partialResponse)
+                        }
+                    )
+                    withContext(Dispatchers.IO) {
+                        future.get()
+                    }
+                }
+
+                ModelRuntime.LITERTLM -> {
+                    val conversation = liteRtConversation
+                        ?: return "LiteRT-LM model is not loaded yet."
+                    var finalResponse = ""
+                    conversation.sendMessageAsync(prompt).collect { partialMessage ->
+                        val partialText = partialMessage.toString()
+                        finalResponse = partialText
+                        onPartial(partialText)
+                    }
+                    finalResponse
                 }
 
                 null -> "Model is not loaded yet. Download and load a model first."
