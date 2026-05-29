@@ -1,4 +1,4 @@
-package com.example.localmodelai.chatui
+package com.example.localmodelai.screens.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -29,6 +29,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.localmodelai.ai.ModelCatalog
+import com.example.localmodelai.ai.ModelDownloadStatus
+import com.example.localmodelai.ai.ModelSpec
+import com.example.localmodelai.screens.chat.ChatViewModel
 import com.example.localmodelai.ui.theme.LocalModelAITheme
 
 @OptIn(ExperimentalMaterial3Api::class)

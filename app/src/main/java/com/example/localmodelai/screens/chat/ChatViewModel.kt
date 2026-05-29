@@ -1,4 +1,4 @@
-package com.example.localmodelai.chatui
+package com.example.localmodelai.screens.chat
 
 import android.app.Application
 import android.net.Uri
@@ -8,9 +8,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.localmodelai.roomdb.AppDatabase
-import com.example.localmodelai.roomdb.ChatMessageEntity
-import com.example.localmodelai.roomdb.ChatSession
+import com.example.localmodelai.data.database.AppDatabase
+import com.example.localmodelai.data.database.ChatMessageEntity
+import com.example.localmodelai.data.database.ChatSession
+import com.example.localmodelai.data.storage.MediaStorage
+import com.example.localmodelai.ai.LocalLLMManager
+import com.example.localmodelai.ai.ModelCatalog
+import com.example.localmodelai.ai.ModelDownloadStatus
+import com.example.localmodelai.ai.ModelDownloader
+import com.example.localmodelai.ai.ModelSpec
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay

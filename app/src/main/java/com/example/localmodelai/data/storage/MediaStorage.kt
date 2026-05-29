@@ -1,4 +1,4 @@
-package com.example.localmodelai.chatui
+package com.example.localmodelai.data.storage
 
 import android.app.Application
 import android.net.Uri

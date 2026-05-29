@@ -1,4 +1,4 @@
-package com.example.localmodelai.chatui
+package com.example.localmodelai.screens.media
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -31,6 +31,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.example.localmodelai.screens.chat.ChatViewModel
 import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)

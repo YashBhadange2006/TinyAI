@@ -1,23 +1,22 @@
-package com.example.localmodelai.chatui
+package com.example.localmodelai.ai
 
 import android.content.Context
 import android.net.Uri
-import java.io.File
 import com.google.ai.edge.litertlm.Backend
 import com.google.ai.edge.litertlm.Content
 import com.google.ai.edge.litertlm.Contents
+import com.google.ai.edge.litertlm.Conversation
 import com.google.ai.edge.litertlm.Engine
 import com.google.ai.edge.litertlm.EngineConfig
 import com.google.ai.edge.litertlm.LogSeverity
-import com.google.ai.edge.litertlm.Conversation
 import com.google.mediapipe.framework.image.BitmapImageBuilder
+import com.google.mediapipe.tasks.genai.llminference.GraphOptions
 import com.google.mediapipe.tasks.genai.llminference.LlmInference
 import com.google.mediapipe.tasks.genai.llminference.LlmInferenceSession
-import com.google.mediapipe.tasks.genai.llminference.GraphOptions
 import com.google.mediapipe.tasks.genai.llminference.ProgressListener
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.withContext
+import java.io.File
 
 class LocalLLMManager(
     private val context: Context
@@ -145,7 +144,7 @@ class LocalLLMManager(
                     val conversation = liteRtConversation
                         ?: return "LiteRT-LM model is not loaded yet."
                     val imagePath = cacheImageForLiteRt(imageUri)
-                    val contents = Contents.of(
+                    val contents = Contents.Companion.of(
                         Content.ImageFile(imagePath),
                         Content.Text(prompt)
                     )
@@ -185,7 +184,7 @@ class LocalLLMManager(
     }
 
     private fun loadLiteRtLmModel(modelPath: String) {
-        Engine.setNativeMinLogSeverity(LogSeverity.ERROR)
+        Engine.Companion.setNativeMinLogSeverity(LogSeverity.ERROR)
 
         val engineConfig = EngineConfig(
             modelPath = modelPath,

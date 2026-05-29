@@ -6,10 +6,10 @@ import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
-import com.example.localmodelai.chatui.ChatUI
-import com.example.localmodelai.chatui.ChatViewModel
-import com.example.localmodelai.chatui.MediaScreen
-import com.example.localmodelai.chatui.ModelSettingsScreen
+import com.example.localmodelai.screens.chat.ChatUI
+import com.example.localmodelai.screens.chat.ChatViewModel
+import com.example.localmodelai.screens.media.MediaScreen
+import com.example.localmodelai.screens.settings.ModelSettingsScreen
 import kotlinx.serialization.Serializable
 
 @Serializable

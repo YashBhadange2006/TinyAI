@@ -1,4 +1,4 @@
-package com.example.localmodelai.chatui
+package com.example.localmodelai.ai
 
 data class ModelSpec(
     val id: String,

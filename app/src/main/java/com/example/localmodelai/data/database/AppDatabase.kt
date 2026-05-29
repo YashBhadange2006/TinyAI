@@ -1,4 +1,4 @@
-package com.example.localmodelai.roomdb
+package com.example.localmodelai.data.database
 
 import android.content.Context
 import androidx.room.migration.Migration

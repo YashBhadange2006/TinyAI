@@ -1,4 +1,4 @@
-package com.example.localmodelai.chatui
+package com.example.localmodelai.ai
 
 import android.app.DownloadManager
 import android.content.Context

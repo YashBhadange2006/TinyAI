@@ -13,7 +13,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.AutoAwesomeMosaic
 import androidx.compose.material.icons.outlined.Delete
@@ -44,10 +43,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.localmodelai.chatui.ChatViewModel
-import com.example.localmodelai.ui.theme.Pink40
-import com.example.localmodelai.ui.theme.Purple40
-import com.example.localmodelai.ui.theme.Purple80
+import com.example.localmodelai.screens.chat.ChatViewModel
 import kotlinx.coroutines.launch
 
 private data class PendingDeleteSession(
