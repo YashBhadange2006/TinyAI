@@ -25,7 +25,9 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -38,6 +40,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -62,6 +65,8 @@ import io.noties.markwon.Markwon
 import io.noties.markwon.ext.latex.JLatexMathPlugin
 import io.noties.markwon.ext.tables.TablePlugin
 import io.noties.markwon.inlineparser.MarkwonInlineParserPlugin
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun MessageBubble(message: Message) {
@@ -174,12 +179,24 @@ fun MessageBubble(message: Message) {
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = if (message.isUser) Arrangement.End else Arrangement.Start
     ) {
+        val scope = rememberCoroutineScope()
+        var isClicked by remember {mutableStateOf(false)}
+        val icon = if(isClicked) Icons.Default.Check else Icons.Default.ContentCopy
         IconButton(
-            onClick = { copyMessageToClipboard(context, message.text) },
+            onClick = {
+                        copyMessageToClipboard(context, message.text)
+                        if (!isClicked){
+                            isClicked = true
+                            scope.launch{
+                                delay(1500)
+                                isClicked = false
+                            }
+                        }
+                      },
             modifier = Modifier.padding(top = 1.dp)
         ) {
             Icon(
-                imageVector = Icons.Default.DateRange,
+                imageVector = icon,
                 contentDescription = "Copy message",
                 tint = contentColor.copy(alpha = 0.5f),
                 modifier = Modifier.size(20.dp)

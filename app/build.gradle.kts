@@ -68,6 +68,8 @@ dependencies {
     implementation("com.google.mediapipe:tasks-core:0.10.29")
     implementation("com.google.mediapipe:tasks-genai:0.10.29")
 
+
+    implementation("androidx.compose.material:material-icons-extended")
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.navigation3.runtime)
