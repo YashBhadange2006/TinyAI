@@ -42,6 +42,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.localmodelai.chatui.ChatViewModel
 import kotlinx.coroutines.launch
 
@@ -133,8 +134,9 @@ fun AppNavigationDrawer(
                                                 text = session.title,
                                                 maxLines = 1,
                                                 style = MaterialTheme.typography.bodyLarge.copy(
-                                                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium
-                                                )
+                                                    fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Medium
+                                                ),
+                                                fontSize = 16.sp
                                             )
                                         },
                                         selected = isSelected,
