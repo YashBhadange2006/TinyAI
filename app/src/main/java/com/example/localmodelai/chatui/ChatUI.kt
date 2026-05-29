@@ -76,7 +76,8 @@ data class Message(
 @Composable
 fun ChatUI(
     chatViewModel: ChatViewModel,
-    onOpenModelSettings: () -> Unit
+    onOpenModelSettings: () -> Unit,
+    onOpenModelMedia: () -> Unit
 ) {
     val listState = rememberLazyListState()
     val messages = chatViewModel.messages
@@ -124,7 +125,8 @@ fun ChatUI(
     AppNavigationDrawer(
         chatViewModel = chatViewModel,
         drawerState = drawerState,
-        onOpenModelSettings = onOpenModelSettings
+        onOpenModelSettings = onOpenModelSettings,
+        onOpenModelMedia = onOpenModelMedia
     ) {
         Scaffold(
             topBar = {

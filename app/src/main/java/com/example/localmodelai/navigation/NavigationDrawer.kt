@@ -15,6 +15,7 @@ import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.outlined.AutoAwesomeMosaic
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.AlertDialog
@@ -59,6 +60,7 @@ fun AppNavigationDrawer(
     chatViewModel: ChatViewModel,
     drawerState: DrawerState,
     onOpenModelSettings: () -> Unit,
+    onOpenModelMedia: () -> Unit,
     content: @Composable () -> Unit
 ) {
     var pendingDeleteSession by remember { mutableStateOf<PendingDeleteSession?>(null) }
@@ -113,6 +115,24 @@ fun AppNavigationDrawer(
                         },
                         modifier = Modifier.padding(vertical = 2.dp)
                     )
+
+                    NavigationDrawerItem(
+                        label = { Text("Media", style = MaterialTheme.typography.labelLarge) },
+                        selected = false,
+                        icon = {
+                            Icon(
+                                imageVector = Icons.Outlined.AutoAwesomeMosaic,
+                                contentDescription = null,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        },
+                        onClick = {
+                            scope.launch { drawerState.close() }
+                            onOpenModelMedia()
+                        },
+                        modifier = Modifier.padding(vertical = 2.dp)
+                    )
+
                     NavigationDrawerItem(
                         label = { Text("Help and feedback", style = MaterialTheme.typography.labelLarge) },
                         selected = false,
@@ -192,13 +212,6 @@ fun AppNavigationDrawer(
                                             )
                                         },
                                         selected = isSelected,
-//                                        icon = {
-//                                            Icon(
-//                                                imageVector = Icons.Default.M,
-//                                                contentDescription = null,
-//                                                modifier = Modifier.size(20.dp)
-//                                            )
-//                                        },
                                         colors = NavigationDrawerItemDefaults.colors(
                                             selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
                                             selectedTextColor = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -213,14 +226,11 @@ fun AppNavigationDrawer(
                                         },
                                         shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
 
-//                                        colors = NavigationDrawerItemDefaults.colors()
-
                                     )
                                 }
 
                                 Box(
                                     modifier = Modifier
-//                                        .align(Alignment.CenterEnd)
                                         .padding(end = 12.dp)
                                 ) {
                                     IconButton(

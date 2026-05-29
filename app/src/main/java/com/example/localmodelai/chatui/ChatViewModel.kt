@@ -2,7 +2,6 @@ package com.example.localmodelai.chatui
 
 import android.app.Application
 import android.net.Uri
-import java.io.File
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -24,6 +23,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         const val SESSION_TITLE_MAX_LENGTH = 40
     }
 
+    val mediaStorage = MediaStorage(application)
     private val llm = LocalLLMManager(application)
     private val downloader = ModelDownloader(application)
     private val chatDao = AppDatabase.getDatabase(application).chatDao()
@@ -200,7 +200,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
             viewModelScope.launch {
                 val savedImagePath = withContext(Dispatchers.IO) {
-                    attachmentUri?.let { copyImageToAppStorage(it, attachmentName) }
+                    attachmentUri?.let { mediaStorage.saveChatImage(it, attachmentName) }
                 }
 
                 messages.add(
@@ -621,22 +621,6 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             return incomingChunk
         }
         return currentText + incomingChunk
-    }
-
-    private fun copyImageToAppStorage(uri: Uri, imageName: String): String {
-        val safeName = imageName
-            .replace(Regex("[^A-Za-z0-9._-]"), "_")
-            .ifBlank { "image_${System.currentTimeMillis()}" }
-        val imageDir = File(getApplication<Application>().filesDir, "chat_images").apply {
-            mkdirs()
-        }
-        val targetFile = File(imageDir, "${System.currentTimeMillis()}_$safeName")
-        getApplication<Application>().contentResolver.openInputStream(uri)?.use { input ->
-            targetFile.outputStream().use { output ->
-                input.copyTo(output)
-            }
-        } ?: error("Unable to read selected image")
-        return targetFile.absolutePath
     }
 
     override fun onCleared() {
