@@ -44,6 +44,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.localmodelai.chatui.ChatViewModel
+import com.example.localmodelai.ui.theme.Pink40
+import com.example.localmodelai.ui.theme.Purple40
+import com.example.localmodelai.ui.theme.Purple80
 import kotlinx.coroutines.launch
 
 private data class PendingDeleteSession(
@@ -79,136 +82,7 @@ fun AppNavigationDrawer(
                             fontWeight = FontWeight.SemiBold
                         )
                     )
-                    Spacer(Modifier.height(8.dp))
-                    HorizontalDivider(modifier = Modifier.padding(horizontal = 4.dp))
-                    Spacer(Modifier.height(8.dp))
 
-                    NavigationDrawerItem(
-                        label = { Text("New Chat", style = MaterialTheme.typography.labelLarge) },
-                        selected = false,
-                        icon = {
-                            Icon(
-                                imageVector = Icons.Default.Add,
-                                contentDescription = null,
-                                modifier = Modifier.size(22.dp)
-                            )
-                        },
-                        onClick = {
-                            chatViewModel.startNewChat()
-                            scope.launch { drawerState.close() }
-                        },
-                        modifier = Modifier.padding(vertical = 2.dp)
-                    )
-
-                    Text(
-                        text = "Chat Sessions",
-                        modifier = Modifier.padding(start = 16.dp, top = 20.dp, bottom = 8.dp),
-                        style = MaterialTheme.typography.titleSmall.copy(
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    )
-
-                    if (chatViewModel.chatSessions.isEmpty()) {
-                        Text(
-                            text = "No saved chats yet",
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                            )
-                        )
-                    } else {
-                        chatViewModel.chatSessions.forEach { session ->
-                            val isSelected = chatViewModel.isSelectedSession(session.id)
-
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 1.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Box(modifier = Modifier.weight(1f)) {
-                                    NavigationDrawerItem(
-                                        label = {
-                                            Text(
-                                                text = session.title,
-                                                maxLines = 1,
-                                                style = MaterialTheme.typography.bodyLarge.copy(
-                                                    fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Medium
-                                                ),
-                                                fontSize = 16.sp
-                                            )
-                                        },
-                                        selected = isSelected,
-//                                        icon = {
-//                                            Icon(
-//                                                imageVector = Icons.Default.M,
-//                                                contentDescription = null,
-//                                                modifier = Modifier.size(20.dp)
-//                                            )
-//                                        },
-                                        colors = NavigationDrawerItemDefaults.colors(
-                                            selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                            selectedTextColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                                            selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                                            unselectedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
-                                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant
-                                        ),
-                                        onClick = {
-                                            chatViewModel.loadChatSession(session.id)
-                                            scope.launch { drawerState.close() }
-                                        }
-                                    )
-
-                                    Box(
-                                        modifier = Modifier
-                                            .align(Alignment.CenterEnd)
-                                            .padding(end = 12.dp)
-                                    ) {
-                                        IconButton(
-                                            onClick = { expandedDropdownSessionId = session.id },
-                                            modifier = Modifier.size(32.dp)
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.MoreVert,
-                                                contentDescription = "Chat Options",
-                                                tint = if (isSelected) {
-                                                    MaterialTheme.colorScheme.onSecondaryContainer
-                                                } else {
-                                                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                                                },
-                                                modifier = Modifier.size(20.dp)
-                                            )
-                                        }
-
-                                        DropdownMenu(
-                                            expanded = expandedDropdownSessionId == session.id,
-                                            onDismissRequest = { expandedDropdownSessionId = null }
-                                        ) {
-                                            DropdownMenuItem(
-                                                text = { Text("Delete") },
-                                                leadingIcon = {
-                                                    Icon(
-                                                        imageVector = Icons.Outlined.Delete,
-                                                        contentDescription = null,
-                                                        modifier = Modifier.size(18.dp)
-                                                    )
-                                                },
-                                                onClick = {
-                                                    expandedDropdownSessionId = null
-                                                    pendingDeleteSession = PendingDeleteSession(
-                                                        id = session.id,
-                                                        title = session.title
-                                                    )
-                                                }
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
 
                     Spacer(Modifier.height(8.dp))
                     HorizontalDivider(modifier = Modifier.padding(horizontal = 4.dp))
@@ -253,6 +127,144 @@ fun AppNavigationDrawer(
                         modifier = Modifier.padding(vertical = 2.dp)
                     )
                     Spacer(Modifier.height(16.dp))
+
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 4.dp))
+                    Spacer(Modifier.height(8.dp))
+
+                    NavigationDrawerItem(
+                        label = { Text("New Chat", style = MaterialTheme.typography.labelLarge) },
+                        selected = false,
+                        icon = {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = null,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        },
+                        onClick = {
+                            chatViewModel.startNewChat()
+                            scope.launch { drawerState.close() }
+                        },
+                        modifier = Modifier.padding(vertical = 2.dp)
+                    )
+
+                    Spacer(Modifier.height(8.dp))
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = 4.dp))
+                    Spacer(Modifier.height(8.dp))
+
+                    Text(
+                        text = "Chat Sessions",
+                        modifier = Modifier.padding(start = 16.dp, top = 20.dp, bottom = 8.dp),
+                        style = MaterialTheme.typography.titleSmall.copy(
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    )
+
+                    if (chatViewModel.chatSessions.isEmpty()) {
+                        Text(
+                            text = "No saved chats yet",
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            )
+                        )
+                    } else {
+                        chatViewModel.chatSessions.forEach { session ->
+                            val isSelected = chatViewModel.isSelectedSession(session.id)
+
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 1.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(modifier = Modifier.weight(1f)) {
+                                    NavigationDrawerItem(
+                                        label = {
+                                            Text(
+                                                text = session.title,
+                                                maxLines = 1,
+                                                style = MaterialTheme.typography.bodyLarge.copy(
+                                                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium
+                                                ),
+                                                fontSize = 16.sp
+                                            )
+                                        },
+                                        selected = isSelected,
+//                                        icon = {
+//                                            Icon(
+//                                                imageVector = Icons.Default.M,
+//                                                contentDescription = null,
+//                                                modifier = Modifier.size(20.dp)
+//                                            )
+//                                        },
+                                        colors = NavigationDrawerItemDefaults.colors(
+                                            selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                            selectedTextColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                            selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                                            unselectedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
+                                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                        ),
+                                        onClick = {
+                                            chatViewModel.loadChatSession(session.id)
+                                            scope.launch { drawerState.close() }
+                                        },
+                                        shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+
+//                                        colors = NavigationDrawerItemDefaults.colors()
+
+                                    )
+                                }
+
+                                Box(
+                                    modifier = Modifier
+//                                        .align(Alignment.CenterEnd)
+                                        .padding(end = 12.dp)
+                                ) {
+                                    IconButton(
+                                        onClick = { expandedDropdownSessionId = session.id },
+                                        modifier = Modifier.size(32.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.MoreVert,
+                                            contentDescription = "Chat Options",
+                                            tint = if (isSelected) {
+                                                MaterialTheme.colorScheme.onSecondaryContainer
+                                            } else {
+                                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                            },
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+
+                                    DropdownMenu(
+                                        expanded = expandedDropdownSessionId == session.id,
+                                        onDismissRequest = { expandedDropdownSessionId = null }
+                                    ) {
+                                        DropdownMenuItem(
+                                            text = { Text("Delete") },
+                                            leadingIcon = {
+                                                Icon(
+                                                    imageVector = Icons.Outlined.Delete,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                            },
+                                            onClick = {
+                                                expandedDropdownSessionId = null
+                                                pendingDeleteSession = PendingDeleteSession(
+                                                    id = session.id,
+                                                    title = session.title
+                                                )
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
