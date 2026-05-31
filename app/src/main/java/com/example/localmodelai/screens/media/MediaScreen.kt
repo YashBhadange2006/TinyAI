@@ -1,6 +1,10 @@
 package com.example.localmodelai.screens.media
 
 import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -13,9 +17,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -30,6 +38,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -54,9 +63,11 @@ fun MediaScreen(
     var mediaFiles by remember { mutableStateOf<List<File>>(emptyList()) }
     var selectedImageUrl by remember { mutableStateOf<String?>(null) }
 
-
+    val selectedFiles = remember {mutableStateListOf<File>()} //Basically the UI will change for selected files in the list
+    val isSelectedMode = selectedFiles.isNotEmpty()
     fun refreshMedia(){
         mediaFiles = chatViewModel.mediaStorage.loadInternalMediaFiles()
+        selectedFiles.clear() // After refresh the UI will clear the selection
     }
     LaunchedEffect(Unit) {
         refreshMedia()
@@ -67,11 +78,41 @@ fun MediaScreen(
             TopAppBar(
                 title = { Text("Media") },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(
+                        onClick = {
+                            if(isSelectedMode){
+                                // If user selects back then instead of going to ChatUI it will exit selection
+                                selectedFiles.clear()
+                            } else {
+                                onBack()
+                            }
+                        }
+                    ) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            imageVector = if(isSelectedMode) Icons.Default.Close else Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = if(isSelectedMode) "Clear Selection" else "Back"
                         )
+                    }
+                },
+                actions = {
+                    if(isSelectedMode){
+                        IconButton(
+                            onClick = {
+                                var deletedCount = 0
+                                selectedFiles.forEach { file ->
+                                    if(file.exists() && file.delete())
+                                        deletedCount++
+                                }
+                                Toast.makeText(context,"Deleted $deletedCount files", Toast.LENGTH_SHORT).show()
+                                refreshMedia()
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Delete Selected",
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
                     }
                 }
             )
@@ -94,16 +135,22 @@ fun MediaScreen(
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 items(mediaFiles) { file ->
+                    val isSelected = selectedFiles.contains(file)
                     MediaGridItem(
                         file = file,
                         onClick = {
-                            selectedImageUrl = file.absolutePath },
-                        onDelete = {
-                            if(file.exists() && file.delete()){
-                                Toast.makeText(context,"File deleted",Toast.LENGTH_SHORT).show()
-                                refreshMedia()
+                            if(isSelectedMode){
+                                if(isSelected) selectedFiles.remove(file) else selectedFiles.add(file)
                             } else {
-                                Toast.makeText(context,"Failed to delete file",Toast.LENGTH_SHORT).show()
+                                selectedImageUrl = file.absolutePath
+                            }
+                        },
+                        isSelected = isSelected,
+                        isSelectedMode = isSelectedMode,
+                        onLongClick = {
+                            // on click add it to selectedFiles val
+                            if(!isSelectedMode){
+                                selectedFiles.add(file)
                             }
                         }
                     )
@@ -133,52 +180,69 @@ fun MediaScreen(
 @Composable
 fun MediaGridItem(
     file: File,
+    isSelected: Boolean,
+    isSelectedMode: Boolean,
     onClick: () -> Unit,
-    onDelete: () -> Unit
+    onLongClick: () -> Unit
 ) {
-    var showMenu by remember {mutableStateOf(false)}
     Box(
         modifier = Modifier
-            .aspectRatio(1f) // Makes it a perfect square
+            .aspectRatio(1f)
             .clip(RoundedCornerShape(8.dp))
             .combinedClickable(
                 onClick = onClick,
-                onLongClick = {showMenu = true}
+                onLongClick = onLongClick
             )
     ) {
         AsyncImage(
-            model = file, // Coil accepts local java.io.File directly
+            model = file,
             contentDescription = "Stored media file",
             modifier = Modifier
                 .fillMaxSize(),
-            contentScale = ContentScale.Crop, // Fills the square nicely
+            contentScale = ContentScale.Crop,
         )
 
+        // Dim layer on selected grid cell
+        if(isSelected){
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.4f))
+            )
+        }
+
+        // Overlay UI for selected Grid cells
         Box(
             modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(4.dp)
+                .fillMaxSize()
+                .padding(6.dp),
+            contentAlignment = Alignment.TopEnd
         ){
-            DropdownMenu(
-                expanded = showMenu,
-                onDismissRequest = {showMenu = false}
-            ) {
-                DropdownMenuItem(
-                    text = {Text("Delete")},
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = "Delete Icon",
-                            tint = Color.Red,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    },
-                    onClick = {
-                        showMenu = false
-                        onDelete()
-                    }
+            if(isSelectedMode && !isSelected){
+                Box(
+                    modifier = Modifier
+                        .size(22.dp)
+                        .background(Color.Black.copy(alpha = 0.3f), CircleShape)
+                        .clip(CircleShape)
+                        .background(Color.Transparent)
                 )
             }
+
+            AnimatedVisibility(
+                visible = isSelected,
+                enter = fadeIn(),
+                exit = fadeOut(),
+            ) {
+                Icon(
+                    imageVector = Icons.Default.CheckCircle,
+                    contentDescription = "Selected",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .size(22.dp)
+                        .background(Color.White, CircleShape)
+                )
+            }
+
         }
     }
 }
