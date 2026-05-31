@@ -1,5 +1,6 @@
 package com.example.localmodelai.screens.media
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -17,6 +18,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -28,6 +30,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
@@ -41,7 +44,7 @@ fun MediaScreen(
     onBack: () -> Unit
 ) {
     var mediaFiles by remember { mutableStateOf<List<File>>(emptyList()) }
-
+    var selectedImageUrl by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(Unit) {
         mediaFiles = chatViewModel.mediaStorage.loadInternalMediaFiles()
     }
@@ -78,26 +81,48 @@ fun MediaScreen(
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 items(mediaFiles) { file ->
-                    MediaGridItem(file = file)
+                    MediaGridItem(
+                        file = file,
+                        onClick = {selectedImageUrl = file.absolutePath}
+                    )
                 }
             }
         }
-
+    }
+    selectedImageUrl?.let{ url ->
+        Surface(
+            color = Color.Black.copy(alpha = 0.9f),
+            modifier = Modifier
+                .fillMaxSize()
+                .clickable{selectedImageUrl = null}
+        ){
+            Box(contentAlignment = Alignment.Center){
+                AsyncImage(
+                    model = url,
+                    contentDescription = "Full Image Preview",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Fit
+                )
+            }
+        }
     }
 }
 
 @Composable
-fun MediaGridItem(file: File) {
+fun MediaGridItem(file: File, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .aspectRatio(1f) // Makes it a perfect square
             .clip(RoundedCornerShape(8.dp))
+            .clickable{onClick()},
     ) {
         AsyncImage(
             model = file, // Coil accepts local java.io.File directly
             contentDescription = "Stored media file",
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop // Fills the square nicely
+            modifier = Modifier
+                .fillMaxSize(),
+            contentScale = ContentScale.Crop, // Fills the square nicely
+
         )
     }
 }
