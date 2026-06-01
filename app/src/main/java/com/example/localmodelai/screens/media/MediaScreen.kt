@@ -3,6 +3,8 @@ package com.example.localmodelai.screens.media
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateOffsetAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
@@ -181,18 +183,48 @@ fun MediaScreen(
     selectedImageUrl?.let{ url ->
         var scale by remember {mutableStateOf(1f)}
         var offset by remember { mutableStateOf(Offset.Zero) }
+
+        var isDragging by remember { mutableStateOf(false) }
+        val animatedOffset by animateOffsetAsState(
+            targetValue = if (isDragging) offset else Offset.Zero,
+            animationSpec = tween(durationMillis = 200),
+            label = "OffsetAnimation"
+        )
+
+        val dismissThreshold = 300f
+
+        val alphaProgress = if (scale <= 1f) {
+            (1f - (kotlin.math.abs(animatedOffset.y) / (dismissThreshold * 2f))).coerceIn(0f, 1f)
+        } else {
+            1f
+        }
+
         Surface(
-            color = Color.Black.copy(alpha = 0.9f),
+            color = Color.Black.copy(alpha = 0.9f*alphaProgress),
             modifier = Modifier
                 .fillMaxSize()
                 .pointerInput(Unit){
                     detectTransformGestures { _, pan, zoom, _ ->
                         scale = (scale*zoom).coerceIn(1f,5f)
+                        isDragging = true
+                        offset+=pan
+                    }
+                }
+                .pointerInput(Unit){
+                    awaitPointerEventScope {
+                        while(true){
+                            val event = awaitPointerEvent()
+                            if(event.changes.all { !it.pressed }){
+                                isDragging = false
+                                if (scale <= 1f && kotlin.math.abs(offset.y) > dismissThreshold){
+                                   // Preview dismiss
+                                    selectedImageUrl = null
+                                } else if(scale<=1f){
+                                    // user didnt drag enough
+                                    offset = Offset.Zero
+                                }
+                            }
 
-                        if(scale>1f){
-                            offset+=pan
-                        } else {
-                            offset = Offset.Zero
                         }
                     }
                 }
@@ -205,10 +237,11 @@ fun MediaScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .graphicsLayer(
-                            scaleX = scale,
-                            scaleY = scale,
-                            translationX = offset.x,
-                            translationY = offset.y
+                            // scale down slightly to give detaching feel
+                            scaleX = if (scale <= 1f) scale * alphaProgress.coerceIn(0.7f, 1f) else scale,
+                            scaleY = if (scale <= 1f) scale * alphaProgress.coerceIn(0.7f, 1f) else scale,
+                            translationX = animatedOffset.x,
+                            translationY = animatedOffset.y
                         )
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
