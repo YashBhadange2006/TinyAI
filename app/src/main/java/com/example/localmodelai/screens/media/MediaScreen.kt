@@ -1,12 +1,15 @@
 package com.example.localmodelai.screens.media
 
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -45,7 +48,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -65,10 +71,24 @@ fun MediaScreen(
 
     val selectedFiles = remember {mutableStateListOf<File>()} //Basically the UI will change for selected files in the list
     val isSelectedMode = selectedFiles.isNotEmpty()
+
+    BackHandler(enabled = true) {
+        if(selectedImageUrl !=null){
+            // If an image preview is open, close the preview first
+            selectedImageUrl = null
+        } else if(isSelectedMode){
+            // If items are selected, clear selection mode instead of leaving the screen
+            selectedFiles.clear()
+        } else {
+            // go to ChatUI Screen
+            onBack()
+        }
+    }
     fun refreshMedia(){
         mediaFiles = chatViewModel.mediaStorage.loadInternalMediaFiles()
         selectedFiles.clear() // After refresh the UI will clear the selection
     }
+
     LaunchedEffect(Unit) {
         refreshMedia()
     }
@@ -159,17 +179,41 @@ fun MediaScreen(
         }
     }
     selectedImageUrl?.let{ url ->
+        var scale by remember {mutableStateOf(1f)}
+        var offset by remember { mutableStateOf(Offset.Zero) }
         Surface(
             color = Color.Black.copy(alpha = 0.9f),
             modifier = Modifier
                 .fillMaxSize()
+                .pointerInput(Unit){
+                    detectTransformGestures { _, pan, zoom, _ ->
+                        scale = (scale*zoom).coerceIn(1f,5f)
+
+                        if(scale>1f){
+                            offset+=pan
+                        } else {
+                            offset = Offset.Zero
+                        }
+                    }
+                }
                 .clickable{selectedImageUrl = null}
         ){
             Box(contentAlignment = Alignment.Center){
                 AsyncImage(
                     model = url,
                     contentDescription = "Full Image Preview",
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer(
+                            scaleX = scale,
+                            scaleY = scale,
+                            translationX = offset.x,
+                            translationY = offset.y
+                        )
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                        ){},
                     contentScale = ContentScale.Fit
                 )
             }
