@@ -190,11 +190,13 @@ fun MediaScreen(
             animationSpec = tween(durationMillis = 200),
             label = "OffsetAnimation"
         )
+        // use for raw offset while drag, else use animated offset on release
+        val currentOffset = if(isDragging) offset else animatedOffset
 
         val dismissThreshold = 300f
 
         val alphaProgress = if (scale <= 1f) {
-            (1f - (kotlin.math.abs(animatedOffset.y) / (dismissThreshold * 2f))).coerceIn(0f, 1f)
+            (1f - (kotlin.math.abs(currentOffset.y) / (dismissThreshold * 2f))).coerceIn(0f, 1f)
         } else {
             1f
         }
@@ -240,8 +242,8 @@ fun MediaScreen(
                             // scale down slightly to give detaching feel
                             scaleX = if (scale <= 1f) scale * alphaProgress.coerceIn(0.7f, 1f) else scale,
                             scaleY = if (scale <= 1f) scale * alphaProgress.coerceIn(0.7f, 1f) else scale,
-                            translationX = animatedOffset.x,
-                            translationY = animatedOffset.y
+                            translationX = currentOffset.x,
+                            translationY = currentOffset.y
                         )
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
