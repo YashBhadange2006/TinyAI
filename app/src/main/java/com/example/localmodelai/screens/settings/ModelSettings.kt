@@ -34,6 +34,7 @@ import com.example.localmodelai.ai.ModelCatalog
 import com.example.localmodelai.ai.ModelDownloadStatus
 import com.example.localmodelai.ai.ModelSpec
 import com.example.localmodelai.components.ModelItemRow
+import com.example.localmodelai.components.StorageCard
 import com.example.localmodelai.screens.chat.ChatViewModel
 import com.example.localmodelai.ui.theme.LocalModelAITheme
 
@@ -99,6 +100,11 @@ fun ModelSettingsContent(
                 )
             }
         }
+
+        item {
+            StorageCard()
+        }
+
 
         items(models) { model ->
             ModelItemRow(

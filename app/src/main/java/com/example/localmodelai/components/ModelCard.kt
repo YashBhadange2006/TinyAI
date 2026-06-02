@@ -1,7 +1,14 @@
 package com.example.localmodelai.components
 
+import android.app.appsearch.StorageInfo
+import android.content.Context
 import android.content.res.Configuration
 import android.graphics.drawable.Icon
+import android.os.Build
+import android.os.Environment
+import android.os.StatFs
+import android.text.format.Formatter
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -28,10 +36,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -39,6 +49,130 @@ import androidx.compose.ui.unit.sp
 import com.example.localmodelai.ai.ModelDownloadStatus
 import com.example.localmodelai.ai.ModelSpec
 import com.example.localmodelai.ui.theme.LocalModelAITheme
+
+
+data class StorageInfo(
+    val totalLabel: String,
+    val usedLabel: String,
+    val progressFraction: Float
+)
+
+@Composable
+fun StorageCard() {
+    val context = LocalContext.current
+    val deviceName = "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}"
+
+    fun getDetailedStorage(ctx: Context): com.example.localmodelai.components.StorageInfo {
+        return try {
+            val path = Environment.getDataDirectory()
+            val stat = StatFs(path.path)
+
+            val totalBytes = stat.totalBytes
+            val availableBytes = stat.availableBytes
+            val usedBytes = totalBytes - availableBytes
+            val progress = if (totalBytes > 0) usedBytes.toFloat() / totalBytes.toFloat() else 0f
+
+            StorageInfo(
+                totalLabel = Formatter.formatFileSize(ctx, totalBytes),
+                usedLabel = Formatter.formatFileSize(ctx, usedBytes),
+                progressFraction = progress.coerceIn(0f, 1f)
+            )
+        } catch (e: Exception) {
+            StorageInfo("0 GB", "0 GB", 0f)
+        }
+    }
+
+    val storageInfo = remember { getDetailedStorage(context) }
+
+    Card(
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceBright
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(5.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.4f),
+                            shape = RoundedCornerShape(15.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PhoneAndroid,
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+
+                Column(
+                    modifier = Modifier.padding(2.dp),
+                    verticalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = deviceName,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Text(
+                        text = "${(storageInfo.progressFraction * 100).toInt()}% full",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+
+            }
+
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Storage",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "${storageInfo.usedLabel} / ${storageInfo.totalLabel}",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                LinearProgressIndicator(
+                    progress = { storageInfo.progressFraction },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(10.dp)
+                        .clip(CircleShape),
+                    color = Color(0xFF4F56CD),
+                    trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f) // Pale background bar track
+                )
+            }
+        }
+    }
+}
 
 @Composable
 fun ModelItemRow(
@@ -56,7 +190,9 @@ fun ModelItemRow(
             containerColor = MaterialTheme.colorScheme.surfaceBright
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        modifier = Modifier.fillMaxWidth().padding(5.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(5.dp)
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -132,7 +268,9 @@ fun ModelItemRow(
                             imageVector = Icons.Default.Storage,
                             contentDescription = "Model size",
                             tint = MaterialTheme.colorScheme.outline,
-                            modifier = Modifier.size(17.dp).padding(end = 5.dp)
+                            modifier = Modifier
+                                .size(17.dp)
+                                .padding(end = 5.dp)
                         )
                         Text(
                             text = "Size: ${model.sizeLabel}",
