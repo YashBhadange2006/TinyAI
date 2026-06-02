@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.sp
 import com.example.localmodelai.ai.ModelCatalog
 import com.example.localmodelai.ai.ModelDownloadStatus
 import com.example.localmodelai.ai.ModelSpec
+import com.example.localmodelai.components.ModelItemRow
 import com.example.localmodelai.screens.chat.ChatViewModel
 import com.example.localmodelai.ui.theme.LocalModelAITheme
 
@@ -109,119 +110,6 @@ fun ModelSettingsContent(
                 isLoading = checkIsLoading(model),
                 isLoaded = checkIsLoaded(model)
             )
-        }
-    }
-}
-
-@Composable
-fun ModelItemRow(
-    model: ModelSpec,
-    status: ModelDownloadStatus,
-    onDownload: () -> Unit,
-    onDelete: () -> Unit,
-    onLoad: () -> Unit,
-    isLoading: Boolean,
-    isLoaded: Boolean
-) {
-    Card(
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Text(
-                text = model.displayName,
-                style = MaterialTheme.typography.titleMedium
-            )
-            Text(
-                text = model.description,
-                style = MaterialTheme.typography.bodySmall
-            )
-            Text(
-                text = "Size: ${model.sizeLabel}",
-                style = MaterialTheme.typography.labelSmall
-            )
-
-            if (status.isDownloading) {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Downloading",
-                            style = MaterialTheme.typography.labelSmall
-                        )
-                        Text(
-                            text = "${status.progressPercent ?: 0}%",
-                            style = MaterialTheme.typography.labelSmall
-                        )
-                    }
-                    LinearProgressIndicator(
-                        progress = { ((status.progressPercent ?: 0).coerceIn(0, 100)) / 100f },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 4.dp),
-                        color = Color(0xFFB031F3)
-                    )
-                }
-            }
-
-            when {
-                status.isDownloading -> {
-                    Button(
-                        onClick = {},
-                        enabled = false,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Downloading...")
-                    }
-                }
-                status.isDownloaded -> {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Button(
-                            onClick = onDelete,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = "Delete Selected",
-                                tint = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.padding(end = 8.dp,)
-                            )
-                            Text("Delete", fontSize = 12.sp)
-                        }
-                        Button(
-                            onClick = onLoad,
-                            enabled = !isLoading && !isLoaded,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text(
-                                text = when {
-                                    isLoading -> "Loading..."
-                                    isLoaded -> "Loaded"
-                                    else -> "Load Model"
-                                },
-                                fontSize = 12.sp
-                            )
-                        }
-                    }
-                }
-                else -> {
-                    Button(
-                        onClick = onDownload,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Download Model")
-                    }
-                }
-            }
         }
     }
 }
