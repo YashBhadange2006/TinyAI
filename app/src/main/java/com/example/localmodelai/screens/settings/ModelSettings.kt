@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -188,6 +189,12 @@ fun ModelItemRow(
                             onClick = onDelete,
                             modifier = Modifier.weight(1f)
                         ) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Delete Selected",
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.padding(end = 8.dp,)
+                            )
                             Text("Delete", fontSize = 12.sp)
                         }
                         Button(
