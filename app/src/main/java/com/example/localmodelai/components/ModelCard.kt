@@ -1,5 +1,6 @@
 package com.example.localmodelai.components
 
+import android.content.res.Configuration
 import android.graphics.drawable.Icon
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -37,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.localmodelai.ai.ModelDownloadStatus
 import com.example.localmodelai.ai.ModelSpec
+import com.example.localmodelai.ui.theme.LocalModelAITheme
 
 @Composable
 fun ModelItemRow(
@@ -175,7 +177,6 @@ fun ModelItemRow(
                 }
             }
 
-            // Bottom Actions Section: Implements your Excalidraw Flow States precisely
             when {
                 status.isDownloading -> {
                     Button(
@@ -193,7 +194,6 @@ fun ModelItemRow(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Wide "Chat Now" Action Button
                         Button(
                             onClick = onLoad,
                             enabled = !isLoading && !isLoaded,
@@ -208,7 +208,7 @@ fun ModelItemRow(
                                 text = when {
                                     isLoading -> "Loading..."
                                     isLoaded -> "Chat Now"
-                                    else -> "Chat Now" // Uses "Chat Now" string from your diagrams
+                                    else -> "Chat Now"
                                 },
                                 fontWeight = FontWeight.SemiBold
                             )
@@ -233,7 +233,6 @@ fun ModelItemRow(
                     }
                 }
                 else -> {
-                    // Not downloaded state: Wide unified download button
                     Button(
                         onClick = onDownload,
                         shape = RoundedCornerShape(16.dp),
@@ -250,7 +249,12 @@ fun ModelItemRow(
     }
 }
 
-@Preview(showBackground = true)
+@Preview(name = "Light Mode", showBackground = true)
+@Preview(
+    name = "Dark Mode",
+    showBackground = true,
+    uiMode = Configuration.UI_MODE_NIGHT_YES
+)
 @Composable
 fun ModelItemRowPreview() {
     val mockModel = ModelSpec(
@@ -264,12 +268,13 @@ fun ModelItemRowPreview() {
 
     val mockStatus = ModelDownloadStatus(
         isDownloading = false,
-        isDownloaded = true,
+        isDownloaded = false,
         progressPercent = 100,
         statusMessage = "Ready"
     )
 
-    MaterialTheme {
+    // Using your app's custom theme so it shifts colors correctly in Dark Mode
+    LocalModelAITheme {
         Box(modifier = Modifier.padding(16.dp)) {
             ModelItemRow(
                 model = mockModel,
@@ -278,7 +283,7 @@ fun ModelItemRowPreview() {
                 onDelete = {},
                 onLoad = {},
                 isLoading = false,
-                isLoaded = true // Toggle this false/true to see different button/pill states in preview
+                isLoaded = true
             )
         }
     }
