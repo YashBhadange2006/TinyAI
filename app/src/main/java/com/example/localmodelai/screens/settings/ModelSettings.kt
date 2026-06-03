@@ -1,8 +1,10 @@
 package com.example.localmodelai.screens.settings
 
 import android.content.res.Configuration
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -249,15 +251,28 @@ fun ModelSettingsContent(
             }
         } else {
             items(filteredModels,key = {it.id}){ model ->
-                ModelItemRow(
-                    model = model,
-                    status = getStatus(model),
-                    onDownload = { onDownload(model) },
-                    onDelete = { onDelete(model) },
-                    onLoad = { onLoad(model) },
-                    isLoading = checkIsLoading(model),
-                    isLoaded = checkIsLoaded(model)
-                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .animateItem(
+                            fadeInSpec = tween(durationMillis = 250),
+                            fadeOutSpec = tween(durationMillis = 180),
+                            placementSpec = spring(
+                                dampingRatio = Spring.DampingRatioNoBouncy,
+                                stiffness = Spring.StiffnessMediumLow
+                            )
+                        )
+                ){
+                    ModelItemRow(
+                        model = model,
+                        status = getStatus(model),
+                        onDownload = { onDownload(model) },
+                        onDelete = { onDelete(model) },
+                        onLoad = { onLoad(model) },
+                        isLoading = checkIsLoading(model),
+                        isLoaded = checkIsLoaded(model)
+                    )
+                }
             }
         }
     }
