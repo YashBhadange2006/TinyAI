@@ -1,6 +1,8 @@
 package com.example.localmodelai.screens.settings
 
 import android.content.res.Configuration
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,9 +10,11 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
@@ -120,24 +124,46 @@ fun ModelSettingsContent(
         }
 
         item{
-            SecondaryTabRow(
-                selectedTabIndex = selectedTab.ordinal,
-                modifier = Modifier.fillMaxWidth(),
-                TabRowDefaults.primaryContainerColor,
-                TabRowDefaults.primaryContentColor,
-                @Composable { HorizontalDivider() },
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
+                        shape = RoundedCornerShape(24.dp)
+                    )
+                    .padding(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+
             ){
                 SettingsTab.entries.forEach { tab->
-                    Tab(
-                       selected =  selectedTab == tab,
-                        onClick = {selectedTab = tab},
-                        text = {
-                            Text(
-                                text = tab.title,
-                                fontWeight = if(selectedTab == tab) FontWeight.Bold else FontWeight.Normal
+                    val isSelected = selectedTab == tab
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(40.dp)
+                            .background(
+                                color = if (isSelected) Color.White else Color.Transparent,
+                                shape = RoundedCornerShape(20.dp)
                             )
-                        }
-                    )
+                            .clickable(
+                                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                                indication = null,
+                                onClick = { selectedTab = tab }
+                            ),
+                        contentAlignment = Alignment.Center
+                    ){
+                        Text(
+                            text = tab.title,
+                            fontSize = 14.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                            color = if (isSelected) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                            }
+                        )
+                    }
                 }
             }
         }
