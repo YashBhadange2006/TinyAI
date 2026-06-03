@@ -1,17 +1,22 @@
 package com.example.localmodelai.screens.settings
 
 import android.content.res.Configuration
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -44,6 +49,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.localmodelai.ai.ModelCatalog
@@ -123,27 +129,59 @@ fun ModelSettingsContent(
             StorageCard()
         }
 
-        item{
-            Row(
+        item {
+            BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
                     .background(
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
                         shape = RoundedCornerShape(24.dp)
                     )
-                    .padding(4.dp),
+                    .padding(4.dp)
+
+            ) {
+                val tabCount = SettingsTab.entries.size
+                val containerWidth = maxWidth
+                val tabWidth = containerWidth / tabCount
+
+                val targetOffset = tabWidth * selectedTab.ordinal
+
+                val animatedOffset by animateDpAsState(
+                    targetValue = targetOffset,
+                    animationSpec = spring(
+                        dampingRatio = 0.78f,
+                        stiffness = 400f
+                    ),
+                    label = "TabSlider"
+                )
+                Box(
+                    modifier = Modifier
+                        .width(tabWidth)
+                        .height(40.dp)
+                        .offset {
+                            IntOffset(x = animatedOffset.roundToPx(), y = 0)
+                        }
+                        .background(
+                            color = MaterialTheme.colorScheme.surface,
+                            shape = RoundedCornerShape(20.dp)
+                        )
+                )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.CenterVertically
 
-            ){
-                SettingsTab.entries.forEach { tab->
+            ) {
+                SettingsTab.entries.forEach { tab ->
                     val isSelected = selectedTab == tab
                     Box(
                         modifier = Modifier
                             .weight(1f)
                             .height(40.dp)
                             .background(
-                                color = if (isSelected) Color.White else Color.Transparent,
+                                color = if (isSelected) MaterialTheme.colorScheme.surface else Color.Transparent,
                                 shape = RoundedCornerShape(20.dp)
                             )
                             .clickable(
@@ -152,13 +190,13 @@ fun ModelSettingsContent(
                                 onClick = { selectedTab = tab }
                             ),
                         contentAlignment = Alignment.Center
-                    ){
+                    ) {
                         Text(
                             text = tab.title,
                             fontSize = 14.sp,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                             color = if (isSelected) {
-                                MaterialTheme.colorScheme.primary
+                                MaterialTheme.colorScheme.onBackground
                             } else {
                                 MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
                             }
@@ -166,6 +204,7 @@ fun ModelSettingsContent(
                     }
                 }
             }
+        }
         }
 
         item {
@@ -199,7 +238,7 @@ fun ModelSettingsContent(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 32.dp),
-                    contentAlignment = androidx.compose.ui.Alignment.Center
+                    contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = if (selectedTab == SettingsTab.MY_MODELS) "No models downloaded yet." else "No models available.",
