@@ -89,7 +89,6 @@ fun StorageCard() {
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceBright
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         modifier = Modifier
             .fillMaxWidth()
             .padding(5.dp)
@@ -120,8 +119,10 @@ fun StorageCard() {
                 }
 
                 Column(
-                    modifier = Modifier.padding(2.dp),
-                    verticalArrangement = Arrangement.SpaceBetween
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(vertical = 2.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
                     Text(
                         text = deviceName,
@@ -135,7 +136,6 @@ fun StorageCard() {
                         fontWeight = FontWeight.SemiBold
                     )
                 }
-
             }
 
             Column(

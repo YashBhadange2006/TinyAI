@@ -57,6 +57,7 @@ import androidx.compose.ui.unit.sp
 import com.example.localmodelai.ai.ModelCatalog
 import com.example.localmodelai.ai.ModelDownloadStatus
 import com.example.localmodelai.ai.ModelSpec
+import com.example.localmodelai.components.ModelSearchBar
 import com.example.localmodelai.components.ModelItemRow
 import com.example.localmodelai.components.StorageCard
 import com.example.localmodelai.screens.chat.ChatViewModel
@@ -72,6 +73,18 @@ fun ModelSettingsScreen(
     chatViewModel: ChatViewModel,
     onBack: () -> Unit
 ) {
+    var searchQuery by remember { mutableStateOf("") }
+    val searchedModels = remember(searchQuery) {
+        if (searchQuery.isBlank()) {
+            ModelCatalog.supportedModels
+        } else {
+            ModelCatalog.supportedModels.filter { model ->
+                model.displayName.contains(searchQuery, ignoreCase = true) ||
+                    model.description.contains(searchQuery, ignoreCase = true)
+            }
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -88,7 +101,9 @@ fun ModelSettingsScreen(
         }
     ) { innerPadding ->
         ModelSettingsContent(
-            models = ModelCatalog.supportedModels,
+            models = searchedModels, // first layer of search filtering
+            searchQuery = searchQuery,
+            onSearchQueryChange = { searchQuery = it },
             modifier = Modifier.padding(innerPadding),
             onDownload = { model -> chatViewModel.downloadSelectedModel(model) },
             onDelete = { model -> chatViewModel.deleteSelectedModel(model) },
@@ -103,6 +118,8 @@ fun ModelSettingsScreen(
 @Composable
 fun ModelSettingsContent(
     models: List<ModelSpec>,
+    searchQuery: String = "",
+    onSearchQueryChange: (String) -> Unit = {},
     modifier: Modifier = Modifier,
     onDownload: (ModelSpec) -> Unit,
     onDelete: (ModelSpec) -> Unit,
@@ -118,17 +135,15 @@ fun ModelSettingsContent(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    text = "Local models",
-                    style = MaterialTheme.typography.titleMedium
-                )
-            }
-        }
+//        item {
+//            StorageCard()
+//        }
 
         item {
-            StorageCard()
+            ModelSearchBar(
+                query = searchQuery,
+                onQueryChange = onSearchQueryChange
+            )
         }
 
         item {
@@ -228,10 +243,10 @@ fun ModelSettingsContent(
         }
 
 
+        // second layer of filtering based on tab
         val filteredModels = when(selectedTab){
             SettingsTab.EXPLORE -> models
             SettingsTab.MY_MODELS -> models.filter { model -> getStatus(model).isDownloaded}
-
         }
 
         if(filteredModels.isEmpty()){
@@ -243,7 +258,11 @@ fun ModelSettingsContent(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = if (selectedTab == SettingsTab.MY_MODELS) "No models downloaded yet." else "No models available.",
+                        text = if(searchQuery.isNotEmpty()){
+                            "No models match \"$searchQuery\""
+                        } else if (selectedTab == SettingsTab.MY_MODELS) {
+                            "No models downloaded yet."
+                        } else "No models available.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
