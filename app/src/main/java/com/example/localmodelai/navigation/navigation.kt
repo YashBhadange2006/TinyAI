@@ -24,7 +24,10 @@ sealed interface PocketAIScreen : NavKey {
 }
 
 @Composable
-fun PocketAINavigation() {
+fun PocketAINavigation(
+    isDarkTheme: Boolean,
+    onToggleTheme: () -> Unit
+) {
     val backStack = rememberNavBackStack(PocketAIScreen.Chat)
     val chatViewModel: ChatViewModel = viewModel()
 
@@ -54,6 +57,8 @@ fun PocketAINavigation() {
             entry<PocketAIScreen.ModelSettings> {
                 ModelSettingsScreen(
                     chatViewModel = chatViewModel,
+                    isDarkTheme = isDarkTheme,
+                    onToggleTheme = onToggleTheme,
                     onBack = {
                         if (backStack.lastIndex > 0) {
                             backStack.removeAt(backStack.lastIndex)
@@ -74,4 +79,3 @@ fun PocketAINavigation() {
         }
     )
 }
-
