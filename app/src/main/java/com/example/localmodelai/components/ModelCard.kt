@@ -193,9 +193,11 @@ fun StorageCard() {
 fun ModelItemRow(
     model: ModelSpec,
     status: ModelDownloadStatus,
+    systemPrompt: String,
     onDownload: () -> Unit,
     onDelete: () -> Unit,
     onLoad: () -> Unit,
+    onSystemPromptChange: (String) -> Unit,
     isLoading: Boolean,
     isLoaded: Boolean
 ) {
@@ -432,8 +434,6 @@ fun ModelItemRow(
                                 modifier = Modifier.rotate(arrowRotationState)
                             )
                         }
-                        var systemPrompt by remember { mutableStateOf("") }
-
                         if(isExpanded){
                             Text(
                                 text = "System Prompt:",
@@ -443,7 +443,7 @@ fun ModelItemRow(
 
                             OutlinedTextField(
                                 value = systemPrompt,
-                                onValueChange = { systemPrompt = it },
+                                onValueChange = onSystemPromptChange,
 
                                 modifier = Modifier.fillMaxWidth(),
                                 enabled = true,
@@ -523,6 +523,8 @@ fun ModelItemRowPreview() {
                 onDownload = {},
                 onDelete = {},
                 onLoad = {},
+                systemPrompt = "",
+                onSystemPromptChange = {},
                 isLoading = false,
                 isLoaded = true
             )

@@ -11,7 +11,8 @@ data class ChatSession(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     @ColumnInfo(name = "title") val title: String,
     @ColumnInfo(name = "created_at") val createdAt: Long,
-    @ColumnInfo(name = "model_name") val modelName: String
+    @ColumnInfo(name = "model_name") val modelName: String,
+    @ColumnInfo(name = "system_prompt") val systemPrompt: String = ""
 )
 
 @Entity(

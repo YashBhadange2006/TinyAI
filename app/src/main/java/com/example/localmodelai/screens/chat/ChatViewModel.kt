@@ -3,6 +3,7 @@ package com.example.localmodelai.screens.chat
 import android.app.Application
 import android.net.Uri
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -36,9 +37,11 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     private var activeModel = ModelCatalog.defaultModel
     private var downloadPollingJob: Job? = null
     private var loadedModelId: String? = null
+    private var loadedSessionId: Long? = null
     private var downloadingModelId: String? = null
     private var loadingModelId: String? = null
     private var currentSessionId by mutableStateOf<Long?>(null)
+    private val systemPromptDrafts = mutableStateMapOf<String, String>()
 
     val messages = mutableStateListOf<Message>()
 
@@ -67,6 +70,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         private set
 
     var selectedAttachmentMimeType by mutableStateOf<String?>(null)
+        private set
+
+    var currentSystemPrompt by mutableStateOf("")
         private set
 
     init {
@@ -120,8 +126,11 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun loadSelectedModel(model : ModelSpec) {
+        val selectedPrompt = systemPromptDrafts[model.id] ?: if (model.id == activeModel.id) currentSystemPrompt else ""
         activeModel = model
         selectedModel = model.displayName
+        currentSystemPrompt = selectedPrompt
+        systemPromptDrafts[model.id] = currentSystemPrompt
         val status = downloader.getDownloadStatus(model)
         modelDownloadStatus = status
 
@@ -136,16 +145,21 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         loadingModelId = model.id
         viewModelScope.launch {
             try {
-                if (loadedModelId != null && loadedModelId != model.id) {
-                    llm.close()
-                    loadedModelId = null
-                    isModelLoaded = false
-                }
                 val modelPath = downloader.getModelPath(model)
                 withContext(Dispatchers.IO) {
-                    llm.loadModel(modelPath)
+                    llm.loadModel(modelPath, currentSystemPrompt)
                 }
                 loadedModelId = model.id
+                loadedSessionId = currentSessionId
+                currentSessionId?.let { sessionId ->
+                    withContext(Dispatchers.IO) {
+                        chatDao.updateSessionModelConfig(
+                            sessionId = sessionId,
+                            modelName = model.displayName,
+                            systemPrompt = currentSystemPrompt
+                        )
+                    }
+                }
                 isModelLoaded = true
                 messages.add(
                     Message("${model.displayName} is loaded and ready for local chat.", false)
@@ -171,9 +185,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
             if (deleted) {
                 if (loadedModelId == model.id) {
-                    llm.close()
-                    loadedModelId = null
-                    isModelLoaded = false
+                    unloadActiveConversation()
                 }
                 if (loadingModelId == model.id) {
                     loadingModelId = null
@@ -337,23 +349,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private suspend fun ensureModelLoaded(): Boolean {
-        if (loadedModelId == activeModel.id && isModelLoaded) return true
-
-        val activeModelStatus = downloader.getDownloadStatus(activeModel)
-        if (!activeModelStatus.isDownloaded) return false
-
-        return try {
-            withContext(Dispatchers.IO) {
-                llm.loadModel(downloader.getModelPath(activeModel))
-            }
-            loadedModelId = activeModel.id
-            isModelLoaded = true
-            true
-        } catch (_: Exception) {
-            loadedModelId = null
-            isModelLoaded = false
-            false
-        }
+        val isSameUnsavedChat = loadedSessionId == null && currentSessionId == null
+        val isSameSavedChat = loadedSessionId != null && loadedSessionId == currentSessionId
+        return loadedModelId == activeModel.id && isModelLoaded && (isSameUnsavedChat || isSameSavedChat)
     }
 
     fun getModelStatus(model: ModelSpec): ModelDownloadStatus {
@@ -366,7 +364,38 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     fun isLoadingModel(model: ModelSpec): Boolean = loadingModelId == model.id && isModelLoading
 
-    fun isLoadedModel(model: ModelSpec): Boolean = loadedModelId == model.id
+    fun isLoadedModel(model: ModelSpec): Boolean {
+        val isSameUnsavedChat = loadedSessionId == null && currentSessionId == null
+        val isSameSavedChat = loadedSessionId != null && loadedSessionId == currentSessionId
+        return loadedModelId == model.id && isModelLoaded && (isSameUnsavedChat || isSameSavedChat)
+    }
+
+    fun getSystemPrompt(model: ModelSpec): String {
+        return if (model.id == activeModel.id) {
+            currentSystemPrompt
+        } else {
+            systemPromptDrafts[model.id] ?: ""
+        }
+    }
+
+    fun updateSystemPrompt(model: ModelSpec, prompt: String) {
+        val trimmedPrompt = prompt
+        systemPromptDrafts[model.id] = trimmedPrompt
+        if (model.id == activeModel.id) {
+            currentSystemPrompt = trimmedPrompt
+            if (isModelLoaded) {
+                unloadActiveConversation()
+            }
+        }
+
+        currentSessionId?.let { sessionId ->
+            if (model.id == activeModel.id) {
+                viewModelScope.launch(Dispatchers.IO) {
+                    chatDao.updateSessionSystemPrompt(sessionId, trimmedPrompt)
+                }
+            }
+        }
+    }
 
     fun setSelectedAttachment(uri: Uri, displayName: String, mimeType: String?) {
         selectedAttachmentUri = uri
@@ -381,7 +410,12 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun startNewChat() {
+        unloadActiveConversation()
         currentSessionId = null
+        activeModel = ModelCatalog.defaultModel
+        selectedModel = activeModel.displayName
+        currentSystemPrompt = ""
+        modelDownloadStatus = downloader.getDownloadStatus(activeModel)
         messages.clear()
         setIntroMessageIfNeeded()
     }
@@ -393,8 +427,13 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             }
 
             if (currentSessionId == sessionId) {
+                unloadActiveConversation()
                 currentSessionId = null
                 messages.clear()
+                activeModel = ModelCatalog.defaultModel
+                selectedModel = activeModel.displayName
+                currentSystemPrompt = ""
+                modelDownloadStatus = downloader.getDownloadStatus(activeModel)
                 setIntroMessageIfNeeded()
             }
 
@@ -403,16 +442,22 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun loadChatSession(sessionId: Long) {
+        unloadActiveConversation()
         currentSessionId = sessionId
         viewModelScope.launch {
             val session = withContext(Dispatchers.IO) {
                 chatDao.getSessionById(sessionId)
             } ?: return@launch
 
+            activeModel = ModelCatalog.defaultModel
+            selectedModel = activeModel.displayName
+            modelDownloadStatus = downloader.getDownloadStatus(activeModel)
+            currentSystemPrompt = session.systemPrompt
             session.modelName.takeIf { it.isNotBlank() }?.let { modelName ->
                 ModelCatalog.supportedModels.firstOrNull { it.displayName == modelName }?.let { model ->
                     activeModel = model
                     selectedModel = model.displayName
+                    systemPromptDrafts[model.id] = session.systemPrompt
                     modelDownloadStatus = downloader.getDownloadStatus(model)
                 }
             }
@@ -506,10 +551,15 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             }
 
             currentSessionId = latestSession.id
+            activeModel = ModelCatalog.defaultModel
+            selectedModel = activeModel.displayName
+            modelDownloadStatus = downloader.getDownloadStatus(activeModel)
+            currentSystemPrompt = latestSession.systemPrompt
             latestSession.modelName.takeIf { it.isNotBlank() }?.let { modelName ->
                 ModelCatalog.supportedModels.firstOrNull { it.displayName == modelName }?.let { model ->
                     activeModel = model
                     selectedModel = model.displayName
+                    systemPromptDrafts[model.id] = latestSession.systemPrompt
                     modelDownloadStatus = downloader.getDownloadStatus(model)
                 }
             }
@@ -553,6 +603,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         imageName: String? = null
     ) {
         val sessionId = ensureSessionExists(firstMessageText = text)
+        if (loadedSessionId == null && isModelLoaded) {
+            loadedSessionId = sessionId
+        }
         withContext(Dispatchers.IO) {
             chatDao.insertMessage(
                 ChatMessageEntity(
@@ -583,7 +636,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 ChatSession(
                     title = sessionTitle,
                     createdAt = System.currentTimeMillis(),
-                    modelName = activeModel.displayName
+                    modelName = activeModel.displayName,
+                    systemPrompt = currentSystemPrompt
                 )
             )
         }
@@ -603,6 +657,15 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 )
             )
         }
+    }
+
+    private fun unloadActiveConversation() {
+        llm.close()
+        loadedModelId = null
+        loadedSessionId = null
+        loadingModelId = null
+        isModelLoaded = false
+        isModelLoading = false
     }
 
     private fun updateAssistantMessage(

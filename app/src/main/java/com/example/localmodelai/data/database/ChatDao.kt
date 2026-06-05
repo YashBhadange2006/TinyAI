@@ -27,6 +27,12 @@ interface ChatDao {
     @Query("UPDATE ChatSession SET title = :title WHERE id = :sessionId")
     suspend fun updateSessionTitle(sessionId: Long, title: String)
 
+    @Query("UPDATE ChatSession SET model_name = :modelName, system_prompt = :systemPrompt WHERE id = :sessionId")
+    suspend fun updateSessionModelConfig(sessionId: Long, modelName: String, systemPrompt: String)
+
+    @Query("UPDATE ChatSession SET system_prompt = :systemPrompt WHERE id = :sessionId")
+    suspend fun updateSessionSystemPrompt(sessionId: Long, systemPrompt: String)
+
     @Query("DELETE FROM ChatSession WHERE id = :sessionId")
     suspend fun  deleteSession(sessionId: Long)
 }

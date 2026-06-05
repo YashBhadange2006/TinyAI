@@ -120,6 +120,8 @@ fun ModelSettingsScreen(
             onDownload = { model -> chatViewModel.downloadSelectedModel(model) },
             onDelete = { model -> chatViewModel.deleteSelectedModel(model) },
             onLoad = { model -> chatViewModel.loadSelectedModel(model) },
+            getSystemPrompt = { model -> chatViewModel.getSystemPrompt(model) },
+            onSystemPromptChange = { model, prompt -> chatViewModel.updateSystemPrompt(model, prompt) },
             getStatus = { model -> chatViewModel.getModelStatus(model) },
             checkIsLoading = { model -> chatViewModel.isLoadingModel(model) },
             checkIsLoaded = { model -> chatViewModel.isLoadedModel(model) }
@@ -136,6 +138,8 @@ fun ModelSettingsContent(
     onDownload: (ModelSpec) -> Unit,
     onDelete: (ModelSpec) -> Unit,
     onLoad: (ModelSpec) -> Unit,
+    getSystemPrompt: (ModelSpec) -> String,
+    onSystemPromptChange: (ModelSpec, String) -> Unit,
     getStatus: (ModelSpec) -> ModelDownloadStatus,
     checkIsLoading: (ModelSpec) -> Boolean,
     checkIsLoaded: (ModelSpec) -> Boolean
@@ -297,9 +301,11 @@ fun ModelSettingsContent(
                     ModelItemRow(
                         model = model,
                         status = getStatus(model),
+                        systemPrompt = getSystemPrompt(model),
                         onDownload = { onDownload(model) },
                         onDelete = { onDelete(model) },
                         onLoad = { onLoad(model) },
+                        onSystemPromptChange = { prompt -> onSystemPromptChange(model, prompt) },
                         isLoading = checkIsLoading(model),
                         isLoaded = checkIsLoaded(model)
                     )
@@ -358,7 +364,9 @@ private fun ModelSettingsPreview() {
             checkIsLoaded = { false },
             onDownload = {},
             onDelete = {},
-            onLoad = {}
+            onLoad = {},
+            getSystemPrompt = { "" },
+            onSystemPromptChange = { _, _ -> }
         )
     }
 }

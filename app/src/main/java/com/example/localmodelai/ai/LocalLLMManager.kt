@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import com.google.ai.edge.litertlm.Backend
 import com.google.ai.edge.litertlm.Content
+import com.google.ai.edge.litertlm.ConversationConfig
 import com.google.ai.edge.litertlm.Contents
 import com.google.ai.edge.litertlm.Conversation
 import com.google.ai.edge.litertlm.Engine
@@ -35,26 +36,34 @@ class LocalLLMManager(
     private var liteRtConversation: Conversation? = null
     private var loadedModelPath: String? = null
     private var loadedRuntime: ModelRuntime? = null
+    private var loadedSystemPrompt: String = ""
 
-    fun isLoaded(modelPath: String): Boolean {
+    fun isLoaded(modelPath: String, systemPrompt: String = ""): Boolean {
+        val normalizedPrompt = systemPrompt.trim()
         return when (loadedRuntime) {
             ModelRuntime.MEDIAPIPE -> loadedModelPath == modelPath && llmInference != null
-            ModelRuntime.LITERTLM -> loadedModelPath == modelPath && liteRtEngine != null && liteRtConversation != null
+            ModelRuntime.LITERTLM -> {
+                loadedModelPath == modelPath &&
+                    loadedSystemPrompt == normalizedPrompt &&
+                    liteRtEngine != null &&
+                    liteRtConversation != null
+            }
             null -> false
         }
     }
 
-    fun loadModel(modelPath: String) {
-        if (isLoaded(modelPath)) return
+    fun loadModel(modelPath: String, systemPrompt: String = "") {
+        if (isLoaded(modelPath, systemPrompt)) return
 
         close()
 
         if (modelPath.endsWith(".litertlm", ignoreCase = true)) {
-            loadLiteRtLmModel(modelPath)
+            loadLiteRtLmModel(modelPath, systemPrompt)
         } else {
             loadMediaPipeModel(modelPath)
         }
         loadedModelPath = modelPath
+        loadedSystemPrompt = systemPrompt.trim()
     }
 
     fun generate(prompt: String): String {
@@ -170,6 +179,7 @@ class LocalLLMManager(
 
         loadedRuntime = null
         loadedModelPath = null
+        loadedSystemPrompt = ""
     }
 
     private fun loadMediaPipeModel(modelPath: String) {
@@ -183,7 +193,7 @@ class LocalLLMManager(
         loadedRuntime = ModelRuntime.MEDIAPIPE
     }
 
-    private fun loadLiteRtLmModel(modelPath: String) {
+    private fun loadLiteRtLmModel(modelPath: String, systemPrompt: String) {
         Engine.Companion.setNativeMinLogSeverity(LogSeverity.ERROR)
 
         val engineConfig = EngineConfig(
@@ -197,7 +207,16 @@ class LocalLLMManager(
         engine.initialize()
 
         liteRtEngine = engine
-        liteRtConversation = engine.createConversation()
+        val normalizedPrompt = systemPrompt.trim()
+        liteRtConversation = if (normalizedPrompt.isNotEmpty()) {
+            engine.createConversation(
+                ConversationConfig(
+                    systemInstruction = Contents.of(normalizedPrompt)
+                )
+            )
+        } else {
+            engine.createConversation()
+        }
         loadedRuntime = ModelRuntime.LITERTLM
     }
 
