@@ -415,6 +415,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         activeModel = ModelCatalog.defaultModel
         selectedModel = activeModel.displayName
         currentSystemPrompt = ""
+        systemPromptDrafts.clear()
         modelDownloadStatus = downloader.getDownloadStatus(activeModel)
         messages.clear()
         setIntroMessageIfNeeded()
