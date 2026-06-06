@@ -27,6 +27,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Settings
@@ -37,22 +39,32 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDrawerState
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.localmodelai.components.ChatInput
 import com.example.localmodelai.components.MessageBubble
+import com.example.localmodelai.components.ModelSettingsSheetContent
 import com.example.localmodelai.navigation.AppNavigationDrawer
 import kotlinx.coroutines.launch
 
@@ -78,6 +90,18 @@ fun ChatUI(
     val messages = chatViewModel.messages
     val isTyping = chatViewModel.isTyping
     val context = LocalContext.current
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
+    val sheetState = rememberModalBottomSheetState()
+    var showBottomSheet by remember {mutableStateOf(false)}
+
+    val dismissSheet = {
+        scope.launch { sheetState.hide() }.invokeOnCompletion {
+            if(!sheetState.isVisible){
+                showBottomSheet = false
+            }
+        }
+    }
     val attachmentPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri ->
@@ -113,10 +137,6 @@ fun ChatUI(
 //        else -> "No model"
 //    }
 
-
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
-
     AppNavigationDrawer(
         chatViewModel = chatViewModel,
         drawerState = drawerState,
@@ -128,14 +148,30 @@ fun ChatUI(
                 CenterAlignedTopAppBar(
                     title = {
                         val showModelInfo = !chatViewModel.isNewChat || chatViewModel.isModelLoaded
+                        var textAlpha by remember { mutableFloatStateOf(1f) }
                         if (showModelInfo) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.clickable { onOpenModelSettings() }
+                                modifier = Modifier
+                                    .alpha(textAlpha)
+                                    .pointerInput(Unit) {
+                                        detectTapGestures(
+                                            onPress = {
+                                                textAlpha = 0.6f // Dim on press
+                                                tryAwaitRelease()
+                                                textAlpha = 1f  // Reset on release
+                                                showBottomSheet = true // Open your sheet
+                                            }
+                                        )
+                                    }
+
                             ) {
                                 Text(
                                     text = chatViewModel.selectedModel,
-                                    style = MaterialTheme.typography.titleLarge
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        fontWeight = FontWeight.SemiBold,
+                                        letterSpacing = 0.25.sp
+                                    )
                                 )
                                 Icon(
                                     imageVector = Icons.Default.KeyboardArrowDown,
@@ -200,6 +236,19 @@ fun ChatUI(
                 isTyping = isTyping,
                 modifier = Modifier.padding(padding)
             )
+        }
+
+
+        if(showBottomSheet){
+            ModalBottomSheet(
+                onDismissRequest = {showBottomSheet = false},
+                sheetState = sheetState
+            ){
+                ModelSettingsSheetContent(
+                    chatviewModel = chatViewModel,
+                    onDismiss = { dismissSheet() }
+                )
+            }
         }
     }
 }

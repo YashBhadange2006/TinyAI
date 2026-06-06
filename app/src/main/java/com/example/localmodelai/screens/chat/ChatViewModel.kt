@@ -44,6 +44,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         private set
 
     val isNewChat: Boolean get() = currentSessionId == null
+
     private val systemPromptDrafts = mutableStateMapOf<String, String>()
 
     val messages = mutableStateListOf<Message>()
@@ -398,6 +399,14 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
         }
+    }
+
+    fun updateCurrentSystemPrompt(prompt: String) {
+        updateSystemPrompt(activeModel, prompt)
+    }
+
+    fun reloadActiveModel() {
+        loadSelectedModel(activeModel)
     }
 
     fun setSelectedAttachment(uri: Uri, displayName: String, mimeType: String?) {
