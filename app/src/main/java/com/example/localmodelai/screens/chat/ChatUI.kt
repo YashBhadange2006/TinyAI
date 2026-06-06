@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -147,42 +148,33 @@ fun ChatUI(
             topBar = {
                 CenterAlignedTopAppBar(
                     title = {
-                        val showModelInfo = !chatViewModel.isNewChat || chatViewModel.isModelLoaded
                         var textAlpha by remember { mutableFloatStateOf(1f) }
-                        if (showModelInfo) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier
-                                    .alpha(textAlpha)
-                                    .pointerInput(Unit) {
-                                        detectTapGestures(
-                                            onPress = {
-                                                textAlpha = 0.6f // Dim on press
-                                                tryAwaitRelease()
-                                                textAlpha = 1f  // Reset on release
-                                                showBottomSheet = true // Open your sheet
-                                            }
-                                        )
-                                    }
-
-                            ) {
-                                Text(
-                                    text = chatViewModel.selectedModel,
-                                    style = MaterialTheme.typography.titleMedium.copy(
-                                        fontWeight = FontWeight.SemiBold,
-                                        letterSpacing = 0.25.sp
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .alpha(textAlpha)
+                                .pointerInput(Unit) {
+                                    detectTapGestures(
+                                        onPress = {
+                                            textAlpha = 0.6f
+                                            tryAwaitRelease()
+                                            textAlpha = 1f
+                                            showBottomSheet = true
+                                        }
                                     )
-                                )
-                                Icon(
-                                    imageVector = Icons.Default.KeyboardArrowDown,
-                                    contentDescription = "Model Selection",
-                                    modifier = Modifier.padding(start = 4.dp)
-                                )
-                            }
-                        } else {
+                                }
+                        ) {
                             Text(
-                                text = "New Chat",
-                                style = MaterialTheme.typography.titleLarge
+                                text = if (chatViewModel.isNewChat) "New Chat" else chatViewModel.selectedModel,
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.SemiBold,
+                                    letterSpacing = 0.25.sp
+                                )
+                            )
+                            Icon(
+                                imageVector = Icons.Default.KeyboardArrowDown,
+                                contentDescription = "Model Selection",
+                                modifier = Modifier.padding(start = 4.dp)
                             )
                         }
                     },
@@ -197,6 +189,18 @@ fun ChatUI(
                         }
                     },
                     actions = {
+                        chatViewModel.modelLoadIndicator?.let { indicator ->
+                            AssistChip(
+                                onClick = {},
+                                label = {
+                                    Text(
+                                        text = indicator,
+                                        style = MaterialTheme.typography.labelSmall
+                                    )
+                                },
+                                modifier = Modifier.padding(end = 4.dp)
+                            )
+                        }
 //                        Text(
 //                            text = statusLabel,
 //                            modifier = Modifier.padding(end = 8.dp)
@@ -335,4 +339,3 @@ private fun resolveFileName(
     }
     return uri.lastPathSegment ?: "Selected file"
 }
-

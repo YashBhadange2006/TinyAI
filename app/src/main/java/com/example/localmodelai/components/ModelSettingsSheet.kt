@@ -14,7 +14,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -30,12 +29,8 @@ fun ModelSettingsSheetContent(
     chatviewModel: ChatViewModel,
     onDismiss: () -> Unit
 ) {
-    var prompt by remember { mutableStateOf(chatviewModel.currentSystemPrompt) }
-
-    LaunchedEffect(chatviewModel.isModelLoading) {
-        if (!chatviewModel.isModelLoading && chatviewModel.isModelLoaded) {
-            onDismiss()
-        }
+    var prompt by remember(chatviewModel.currentSystemPrompt) {
+        mutableStateOf(chatviewModel.currentSystemPrompt)
     }
 
     Column(
@@ -93,6 +88,7 @@ fun ModelSettingsSheetContent(
             onClick = {
                 chatviewModel.updateCurrentSystemPrompt(prompt)
                 chatviewModel.reloadActiveModel()
+                onDismiss()
             },
             modifier = Modifier
                 .fillMaxWidth()

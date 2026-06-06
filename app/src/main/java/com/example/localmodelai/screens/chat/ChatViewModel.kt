@@ -79,6 +79,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     var currentSystemPrompt by mutableStateOf("")
         private set
 
+    var modelLoadIndicator by mutableStateOf<String?>(null)
+        private set
+
     init {
         setIntroMessageIfNeeded()
         refreshModelStatus()
@@ -145,39 +148,13 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
 
-        isModelLoading = true
-        loadingModelId = model.id
         viewModelScope.launch {
-            try {
-                val modelPath = downloader.getModelPath(model)
-                withContext(Dispatchers.IO) {
-                    llm.loadModel(modelPath, currentSystemPrompt)
-                }
-                loadedModelId = model.id
-                loadedSessionId = currentSessionId
-                currentSessionId?.let { sessionId ->
-                    withContext(Dispatchers.IO) {
-                        chatDao.updateSessionModelConfig(
-                            sessionId = sessionId,
-                            modelName = model.displayName,
-                            systemPrompt = currentSystemPrompt
-                        )
-                    }
-                }
-                isModelLoaded = true
-                messages.add(
-                    Message("${model.displayName} is loaded and ready for local chat.", false)
-                )
-            } catch (e: Exception) {
-                loadedModelId = null
-                isModelLoaded = false
-                messages.add(
-                    Message("Failed to load ${model.displayName}: ${e.message ?: "unknown error"}", false)
-                )
-            } finally {
-                isModelLoading = false
-                loadingModelId = null
-            }
+            loadModelForContext(
+                model = model,
+                systemPrompt = currentSystemPrompt,
+                confirmationMessage = "${model.displayName} is loaded and ready for local chat.",
+                persistSessionConfig = currentSessionId != null
+            )
         }
     }
 
@@ -237,7 +214,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
                 if (!ensureModelLoaded()) {
                     messages.add(
-                        Message("The model is not ready yet. Download and load ${activeModel.displayName} from the model menu first.", false)
+                        Message("The model is not ready yet. Download and load AI model from the model menu in the Settings icon first.", false)
                     )
                     return@launch
                 }
@@ -274,7 +251,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             if (!ensureModelLoaded()) {
                 messages.add(
-                    Message("The model is not ready yet. Download and load ${activeModel.displayName} from the model menu first.", false)
+                    Message("The model is not ready yet. Download and load AI model from the model menu in the Settings icon first.", false)
                 )
                 return@launch
             }
@@ -429,6 +406,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         currentSystemPrompt = ""
         systemPromptDrafts.clear()
         modelDownloadStatus = downloader.getDownloadStatus(activeModel)
+        modelLoadIndicator = null
         messages.clear()
         setIntroMessageIfNeeded()
     }
@@ -447,6 +425,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                 selectedModel = activeModel.displayName
                 currentSystemPrompt = ""
                 modelDownloadStatus = downloader.getDownloadStatus(activeModel)
+                modelLoadIndicator = null
                 setIntroMessageIfNeeded()
             }
 
@@ -472,6 +451,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     selectedModel = model.displayName
                     systemPromptDrafts[model.id] = session.systemPrompt
                     modelDownloadStatus = downloader.getDownloadStatus(model)
+                    modelLoadIndicator = "Restoring"
                 }
             }
 
@@ -494,6 +474,25 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                         )
                     }
                 )
+            }
+
+            session.modelName.takeIf { it.isNotBlank() }?.let { modelName ->
+                ModelCatalog.supportedModels.firstOrNull { it.displayName == modelName }?.let { model ->
+                    val loaded = loadModelForContext(
+                        model = model,
+                        systemPrompt = session.systemPrompt,
+                        confirmationMessage = "Restored ${model.displayName} for this chat.",
+                        persistSessionConfig = false
+                    )
+                    if (!loaded) {
+                        messages.add(
+                            Message(
+                                "This chat uses ${model.displayName}, but it is not loaded yet. Download it from Model Settings to continue.",
+                                false
+                            )
+                        )
+                    }
+                }
             }
         }
     }
@@ -574,6 +573,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                     selectedModel = model.displayName
                     systemPromptDrafts[model.id] = latestSession.systemPrompt
                     modelDownloadStatus = downloader.getDownloadStatus(model)
+                    modelLoadIndicator = "Restoring"
                 }
             }
 
@@ -596,6 +596,25 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
                         )
                     }
                 )
+            }
+
+            latestSession.modelName.takeIf { it.isNotBlank() }?.let { modelName ->
+                ModelCatalog.supportedModels.firstOrNull { it.displayName == modelName }?.let { model ->
+                    val loaded = loadModelForContext(
+                        model = model,
+                        systemPrompt = latestSession.systemPrompt,
+                        confirmationMessage = "Restored ${model.displayName} for this chat.",
+                        persistSessionConfig = false
+                    )
+                    if (!loaded) {
+                        messages.add(
+                            Message(
+                                "This chat uses ${model.displayName}, but it is not loaded yet. Download it from Model Settings to continue.",
+                                false
+                            )
+                        )
+                    }
+                }
             }
         }
     }
@@ -679,6 +698,71 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         loadingModelId = null
         isModelLoaded = false
         isModelLoading = false
+        modelLoadIndicator = null
+    }
+
+    private suspend fun loadModelForContext(
+        model: ModelSpec,
+        systemPrompt: String,
+        confirmationMessage: String,
+        persistSessionConfig: Boolean
+    ): Boolean {
+        val normalizedPrompt = systemPrompt.trim()
+        val status = downloader.getDownloadStatus(model)
+        modelDownloadStatus = status
+
+        if (!status.isDownloaded) {
+            messages.add(
+                Message("Download ${model.displayName} first, then load it.", false)
+            )
+            loadedModelId = null
+            loadedSessionId = null
+            isModelLoaded = false
+            return false
+        }
+
+        val shouldReload = loadedModelId != model.id || loadedSessionId != currentSessionId || currentSystemPrompt != normalizedPrompt || !isModelLoaded
+        if (shouldReload) {
+            unloadActiveConversation()
+        }
+
+        isModelLoading = true
+        loadingModelId = model.id
+        try {
+            val modelPath = downloader.getModelPath(model)
+            withContext(Dispatchers.IO) {
+                llm.loadModel(modelPath, normalizedPrompt)
+            }
+            loadedModelId = model.id
+            loadedSessionId = currentSessionId
+            currentSystemPrompt = normalizedPrompt
+            systemPromptDrafts[model.id] = normalizedPrompt
+            isModelLoaded = true
+
+            if (persistSessionConfig && currentSessionId != null) {
+                withContext(Dispatchers.IO) {
+                    chatDao.updateSessionModelConfig(
+                        sessionId = currentSessionId!!,
+                        modelName = model.displayName,
+                        systemPrompt = normalizedPrompt
+                    )
+                }
+            }
+
+            messages.add(Message(confirmationMessage, false))
+            return true
+        } catch (e: Exception) {
+            loadedModelId = null
+            loadedSessionId = null
+            isModelLoaded = false
+            messages.add(
+                Message("Failed to load ${model.displayName}: ${e.message ?: "unknown error"}", false)
+            )
+            return false
+        } finally {
+            isModelLoading = false
+            loadingModelId = null
+        }
     }
 
     private fun updateAssistantMessage(
