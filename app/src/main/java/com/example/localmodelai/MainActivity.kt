@@ -16,18 +16,41 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.example.localmodelai.navigation.PocketAINavigation
 import com.example.localmodelai.ui.theme.LocalModelAITheme
 
+private enum class ThemeMode {
+    SYSTEM,
+    LIGHT,
+    DARK
+}
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            val isDark = isSystemInDarkTheme()
-            var isDarkTheme by rememberSaveable { mutableStateOf(isDark) }
+            val systemDark = isSystemInDarkTheme()
+            var themeMode by rememberSaveable { mutableStateOf(ThemeMode.SYSTEM) }
 
-            LocalModelAITheme(darkTheme = isDarkTheme) {
+            val darkTheme = when (themeMode) {
+                ThemeMode.SYSTEM -> systemDark
+                ThemeMode.LIGHT -> false
+                ThemeMode.DARK -> true
+            }
+
+            LocalModelAITheme(darkTheme = darkTheme) {
                 PocketAINavigation(
-                    isDarkTheme = isDarkTheme,
-                    onToggleTheme = { isDarkTheme = !isDarkTheme }
+                    isDarkTheme = darkTheme,
+                    themeModeLabel = when (themeMode) {
+                        ThemeMode.SYSTEM -> "System"
+                        ThemeMode.LIGHT -> "Light"
+                        ThemeMode.DARK -> "Dark"
+                    },
+                    onToggleTheme = {
+                        themeMode = when (themeMode) {
+                            ThemeMode.SYSTEM -> ThemeMode.LIGHT
+                            ThemeMode.LIGHT -> ThemeMode.DARK
+                            ThemeMode.DARK -> ThemeMode.SYSTEM
+                        }
+                    }
                 )
             }
         }

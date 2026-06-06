@@ -74,6 +74,7 @@ enum class SettingsTab(val title: String){
 fun ModelSettingsScreen(
     chatViewModel: ChatViewModel,
     isDarkTheme: Boolean,
+    themeModeLabel: String,
     onToggleTheme: () -> Unit,
     onBack: () -> Unit
 ) {
@@ -103,10 +104,22 @@ fun ModelSettingsScreen(
                 },
                 actions = {
                     IconButton(onClick = onToggleTheme) {
-                        Icon(
-                            imageVector = if (isDarkTheme) Icons.Default.LightMode else Icons.Default.DarkMode,
-                            contentDescription = if (isDarkTheme) "Switch to light mode" else "Switch to dark mode"
-                        )
+                        when (themeModeLabel) {
+                            "System" -> Text(
+                                text = "S",
+                                style = MaterialTheme.typography.labelLarge.copy(
+                                    fontWeight = FontWeight.Bold
+                                )
+                            )
+                            "Light" -> Icon(
+                                imageVector = Icons.Default.LightMode,
+                                contentDescription = "Switch to dark mode"
+                            )
+                            else -> Icon(
+                                imageVector = Icons.Default.DarkMode,
+                                contentDescription = "Switch to system mode"
+                            )
+                        }
                     }
                 }
             )
