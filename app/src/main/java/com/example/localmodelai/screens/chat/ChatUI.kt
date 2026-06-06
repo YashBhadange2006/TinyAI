@@ -26,13 +26,17 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -99,15 +103,15 @@ fun ChatUI(
         }
     }
 
-    val statusLabel = when {
-        chatViewModel.isModelLoaded -> "Ready"
-        chatViewModel.isModelLoading -> "Loading"
-        chatViewModel.modelDownloadStatus.isDownloading -> {
-            chatViewModel.modelDownloadStatus.progressPercent?.let { "$it%" } ?: "Downloading"
-        }
-        chatViewModel.modelDownloadStatus.isDownloaded -> "Downloaded"
-        else -> "No model"
-    }
+//    val statusLabel = when {
+//        chatViewModel.isModelLoaded -> "Ready"
+//        chatViewModel.isModelLoading -> "Loading"
+//        chatViewModel.modelDownloadStatus.isDownloading -> {
+//            chatViewModel.modelDownloadStatus.progressPercent?.let { "$it%" } ?: "Downloading"
+//        }
+//        chatViewModel.modelDownloadStatus.isDownloaded -> "Downloaded"
+//        else -> "No model"
+//    }
 
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -121,8 +125,31 @@ fun ChatUI(
     ) {
         Scaffold(
             topBar = {
-                TopAppBar(
-                    title = { Text("PocketAI Chat") },
+                CenterAlignedTopAppBar(
+                    title = {
+                        val showModelInfo = !chatViewModel.isNewChat || chatViewModel.isModelLoaded
+                        if (showModelInfo) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.clickable { onOpenModelSettings() }
+                            ) {
+                                Text(
+                                    text = chatViewModel.selectedModel,
+                                    style = MaterialTheme.typography.titleLarge
+                                )
+                                Icon(
+                                    imageVector = Icons.Default.KeyboardArrowDown,
+                                    contentDescription = "Model Selection",
+                                    modifier = Modifier.padding(start = 4.dp)
+                                )
+                            }
+                        } else {
+                            Text(
+                                text = "New Chat",
+                                style = MaterialTheme.typography.titleLarge
+                            )
+                        }
+                    },
                     navigationIcon = {
                         IconButton(
                             onClick = { scope.launch { drawerState.open() } }
@@ -134,10 +161,10 @@ fun ChatUI(
                         }
                     },
                     actions = {
-                        Text(
-                            text = statusLabel,
-                            modifier = Modifier.padding(end = 8.dp)
-                        )
+//                        Text(
+//                            text = statusLabel,
+//                            modifier = Modifier.padding(end = 8.dp)
+//                        )
                         IconButton(
                             onClick = {
                                 chatViewModel.refreshModelStatus()

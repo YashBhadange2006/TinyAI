@@ -40,7 +40,10 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     private var loadedSessionId: Long? = null
     private var downloadingModelId: String? = null
     private var loadingModelId: String? = null
-    private var currentSessionId by mutableStateOf<Long?>(null)
+    var currentSessionId by mutableStateOf<Long?>(null)
+        private set
+
+    val isNewChat: Boolean get() = currentSessionId == null
     private val systemPromptDrafts = mutableStateMapOf<String, String>()
 
     val messages = mutableStateListOf<Message>()
