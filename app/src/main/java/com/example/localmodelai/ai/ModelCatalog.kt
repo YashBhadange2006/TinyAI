@@ -83,6 +83,15 @@ object ModelCatalog {
         description = "Downloads the hosted LitertLM .litertlm model on demand, then loads it locally on device."
     )
 
-    val supportedModels = listOf(tinyLlama,SmolLM,gemma3_1b,gemma3,qwen25_1_5B_Instruct,deepseek_r1_distill_qwen_1_5B,gemma4_2b)
+    val TinySwallow = ModelSpec(
+        id = "TinySwallow-1.5B-Instruct",
+        displayName = "TinySwallow-1.5B-Instruct",
+        sizeLabel = "1.57GB download",
+        downloadUrl = "https://huggingface.co/litert-community/TinySwallow-1.5B-Instruct/resolve/main/TinySwallow-1.5B-Instruct.litertlm?download=true",
+        fileName = "TinySwallow-1.5B-Instruct.litertlm",
+        description = "Downloads the hosted LitertLM .litertlm model on demand, then loads it locally on device."
+    )
+
+    val supportedModels = listOf(TinySwallow,tinyLlama,SmolLM,gemma3_1b,gemma3,qwen25_1_5B_Instruct,deepseek_r1_distill_qwen_1_5B,gemma4_2b)
     val defaultModel = gemma3
 }

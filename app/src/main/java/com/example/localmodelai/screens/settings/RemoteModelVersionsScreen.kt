@@ -47,7 +47,7 @@ fun RemoteModelVersionsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(repoTitle) },
+                title = { Text(repoTitle, style = MaterialTheme.typography.titleMedium) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(

@@ -23,6 +23,9 @@ class ModelDownloader(
         context.getSharedPreferences("model_downloads", Context.MODE_PRIVATE)
 
     fun downloadModel(model: ModelSpec) {
+        Log.d("ModelDownloader", "Initiating download for: ${model.displayName}")
+        Log.d("ModelDownloader", "Download URL: ${model.downloadUrl}")
+
         if (isModelDownloaded(model)) return
 
         val currentStatus = getDownloadStatus(model)

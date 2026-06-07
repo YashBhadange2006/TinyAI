@@ -31,6 +31,10 @@ class LocalLLMManager(
         LITERTLM
     }
 
+    // variable editable only by this file
+    var supportsVision: Boolean = false
+        private set
+
     private var llmInference: LlmInference? = null
     private var liteRtEngine: Engine? = null
     private var liteRtConversation: Conversation? = null
@@ -128,6 +132,9 @@ class LocalLLMManager(
     }
 
     fun generateWithImage(prompt: String, imageUri: Uri): String {
+        if(!supportsVision){
+            return "Error: The currently loaded model only supports text generation."
+        }
         return try {
             when (loadedRuntime) {
                 ModelRuntime.MEDIAPIPE -> {
@@ -180,42 +187,70 @@ class LocalLLMManager(
         loadedRuntime = null
         loadedModelPath = null
         loadedSystemPrompt = ""
+        supportsVision = false
     }
 
     private fun loadMediaPipeModel(modelPath: String) {
-        val options = LlmInference.LlmInferenceOptions.builder()
-            .setModelPath(modelPath)
-            .setMaxTokens(DEFAULT_MAX_TOKENS)
-            .setMaxNumImages(1)
-            .build()
+        try {
+            val options = LlmInference.LlmInferenceOptions.builder()
+                .setModelPath(modelPath)
+                .setMaxTokens(DEFAULT_MAX_TOKENS)
+                .setMaxNumImages(1)
+                .build()
 
-        llmInference = LlmInference.createFromOptions(context, options)
+            llmInference = LlmInference.createFromOptions(context, options)
+            supportsVision = true
+        } catch (e: Exception){
+            val textOptions = LlmInference.LlmInferenceOptions.builder()
+                .setModelPath(modelPath)
+                .setMaxTokens(DEFAULT_MAX_TOKENS)
+                .build()
+
+            llmInference = LlmInference.createFromOptions(context, textOptions)
+            supportsVision = false
+        }
         loadedRuntime = ModelRuntime.MEDIAPIPE
     }
 
     private fun loadLiteRtLmModel(modelPath: String, systemPrompt: String) {
         Engine.Companion.setNativeMinLogSeverity(LogSeverity.ERROR)
 
-        val engineConfig = EngineConfig(
-            modelPath = modelPath,
-            backend = Backend.CPU(),
-            visionBackend = Backend.CPU(),
-            cacheDir = context.cacheDir.absolutePath
-        )
+        var engine: Engine?= null
+        try{
+            val engineConfig = EngineConfig(
+                modelPath = modelPath,
+                backend = Backend.CPU(),
+                visionBackend = Backend.CPU(),
+                cacheDir = context.cacheDir.absolutePath
+            )
 
-        val engine = Engine(engineConfig)
-        engine.initialize()
+            val engine = Engine(engineConfig)
+            engine.initialize()
+            supportsVision = true
+        } catch (e: Exception){
+            val textConfig = EngineConfig(
+                modelPath = modelPath,
+                backend = Backend.CPU(),
+                visionBackend = null,
+                cacheDir = context.cacheDir.absolutePath
+            )
+
+            engine = Engine(textConfig)
+            engine.initialize()
+            supportsVision = false
+        }
+
 
         liteRtEngine = engine
         val normalizedPrompt = systemPrompt.trim()
         liteRtConversation = if (normalizedPrompt.isNotEmpty()) {
-            engine.createConversation(
+            engine?.createConversation(
                 ConversationConfig(
                     systemInstruction = Contents.of(normalizedPrompt)
                 )
             )
         } else {
-            engine.createConversation()
+            engine?.createConversation()
         }
         loadedRuntime = ModelRuntime.LITERTLM
     }

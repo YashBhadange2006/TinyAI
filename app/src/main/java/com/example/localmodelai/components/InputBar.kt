@@ -90,11 +90,18 @@ fun ChatInput(
                     .padding(horizontal = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = onAttachClick) {
+                IconButton(
+                    onClick = onAttachClick,
+                    enabled = chatViewModel.llm.supportsVision
+                ) {
                     Icon(
                         imageVector = Icons.Default.Add,
                         contentDescription = "Attach image",
-                        tint = MaterialTheme.colorScheme.primary
+                        tint = if (chatViewModel.llm.supportsVision) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                        }
                     )
                 }
 
