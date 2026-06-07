@@ -3,843 +3,92 @@ package com.example.localmodelai.screens.chat
 import android.app.Application
 import android.net.Uri
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.viewModelScope
-import com.example.localmodelai.data.database.AppDatabase
-import com.example.localmodelai.data.database.ChatMessageEntity
-import com.example.localmodelai.data.database.ChatSession
-import com.example.localmodelai.data.api.HFRemoteModelGroup
-import com.example.localmodelai.data.api.HuggingFaceModelsRepository
-import com.example.localmodelai.data.storage.MediaStorage
 import com.example.localmodelai.ai.LocalLLMManager
 import com.example.localmodelai.ai.ModelCatalog
 import com.example.localmodelai.ai.ModelDownloadStatus
 import com.example.localmodelai.ai.ModelDownloader
 import com.example.localmodelai.ai.ModelSpec
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import com.example.localmodelai.data.api.HFRemoteModelGroup
+import com.example.localmodelai.data.api.HuggingFaceModelsRepository
+import com.example.localmodelai.data.database.AppDatabase
+import com.example.localmodelai.data.database.ChatSession
+import com.example.localmodelai.data.storage.MediaStorage
 
 class ChatViewModel(application: Application) : AndroidViewModel(application) {
-    private companion object {
+    internal companion object {
         const val CONTEXT_MESSAGE_LIMIT = 4
         const val SESSION_TITLE_MAX_LENGTH = 40
     }
 
-    val mediaStorage = MediaStorage(application)
-    private val llm = LocalLLMManager(application)
-    private val downloader = ModelDownloader(application)
-    private val remoteModelsRepository = HuggingFaceModelsRepository()
-    private val chatDao = AppDatabase.getDatabase(application).chatDao()
-    private var activeModel = ModelCatalog.defaultModel
-    private var downloadPollingJob: Job? = null
-    private var loadedModelId: String? = null
-    private var loadedSessionId: Long? = null
-    private var downloadingModelId: String? = null
-    private var loadingModelId: String? = null
+    internal val mediaStorage = MediaStorage(application)
+    internal val llm = LocalLLMManager(application)
+    internal val downloader = ModelDownloader(application)
+    internal val remoteModelsRepository = HuggingFaceModelsRepository()
+    internal val chatDao = AppDatabase.getDatabase(application).chatDao()
+
+    internal var activeModel = ModelCatalog.defaultModel
+    internal var downloadPollingJob: kotlinx.coroutines.Job? = null
+    internal var loadedModelId: String? = null
+    internal var loadedSessionId: Long? = null
+    internal var downloadingModelId: String? = null
+    internal var loadingModelId: String? = null
+
     var currentSessionId by mutableStateOf<Long?>(null)
-        private set
+        internal set
 
     val isNewChat: Boolean get() = currentSessionId == null
 
-    private val systemPromptDrafts = mutableStateMapOf<String, String>()
+    internal val systemPromptDrafts = mutableStateMapOf<String, String>()
 
     val messages = mutableStateListOf<Message>()
 
     var selectedModel by mutableStateOf(activeModel.displayName)
-        private set
+        internal set
 
     var isModelLoading by mutableStateOf(false)
-        private set
+        internal set
 
     var isTyping by mutableStateOf(false)
-        private set
+        internal set
 
     var isModelLoaded by mutableStateOf(false)
-        private set
+        internal set
 
     var modelDownloadStatus by mutableStateOf(downloader.getDownloadStatus(activeModel))
-        private set
+        internal set
 
     var chatSessions by mutableStateOf<List<ChatSession>>(emptyList())
-        private set
+        internal set
 
     var remoteModelGroups by mutableStateOf<List<HFRemoteModelGroup>>(emptyList())
-        private set
+        internal set
 
     var selectedAttachmentUri by mutableStateOf<Uri?>(null)
-        private set
+        internal set
 
     var selectedAttachmentName by mutableStateOf<String?>(null)
-        private set
+        internal set
 
     var selectedAttachmentMimeType by mutableStateOf<String?>(null)
-        private set
+        internal set
 
     var currentSystemPrompt by mutableStateOf("")
-        private set
+        internal set
 
     var modelLoadIndicator by mutableStateOf<String?>(null)
-        private set
+        internal set
 
     init {
-        setIntroMessageIfNeeded()
-        refreshModelStatus()
-        loadRemoteModelCatalog()
-        loadChatSessions()
-        restoreLatestSession()
-    }
-
-    fun refreshModelStatus(model: ModelSpec = activeModel) {
-        val latestStatus = downloader.getDownloadStatus(model)
-        modelDownloadStatus = if (
-            downloadingModelId == model.id &&
-            !latestStatus.isDownloaded &&
-            !latestStatus.statusMessage.contains("failed", ignoreCase = true)
-        ) {
-            latestStatus.copy(
-                isDownloading = true,
-                progressPercent = latestStatus.progressPercent ?: modelDownloadStatus.progressPercent ?: 0,
-                statusMessage = if (latestStatus.statusMessage == "Not downloaded") {
-                    "Starting download"
-                } else {
-                    latestStatus.statusMessage
-                }
-            )
-        } else {
-            latestStatus
-        }
-        isModelLoaded = loadedModelId == activeModel.id
-        if (modelDownloadStatus.isDownloaded || modelDownloadStatus.statusMessage.contains("failed", ignoreCase = true)) {
-            if (downloadingModelId == model.id) {
-                downloadingModelId = null
-            }
-        }
-        if (modelDownloadStatus.isDownloading || downloadingModelId == model.id) {
-            startDownloadPolling(model)
-        }
-    }
-
-    fun downloadSelectedModel(model : ModelSpec) {
-        downloadingModelId = model.id
-        modelDownloadStatus = ModelDownloadStatus(
-            isDownloaded = false,
-            isDownloading = true,
-            progressPercent = 0,
-            statusMessage = "Starting download"
-        )
-        downloader.downloadModel(model)
-        refreshModelStatus(model)
-        startDownloadPolling(model)
-    }
-
-    fun loadSelectedModel(model : ModelSpec) {
-        val selectedPrompt = systemPromptDrafts[model.id] ?: if (model.id == activeModel.id) currentSystemPrompt else ""
-        activeModel = model
-        selectedModel = model.displayName
-        currentSystemPrompt = selectedPrompt
-        systemPromptDrafts[model.id] = currentSystemPrompt
-        val status = downloader.getDownloadStatus(model)
-        modelDownloadStatus = status
-
-        if (!status.isDownloaded) {
-            messages.add(
-                Message("Download ${model.displayName} first, then load it.", false)
-            )
-            return
-        }
-
-        viewModelScope.launch {
-            loadModelForContext(
-                model = model,
-                systemPrompt = currentSystemPrompt,
-                confirmationMessage = "${model.displayName} is loaded and ready for local chat.",
-                persistSessionConfig = currentSessionId != null
-            )
-        }
-    }
-
-    fun deleteSelectedModel(model: ModelSpec) {
-        viewModelScope.launch {
-            val deleted = withContext(Dispatchers.IO) {
-                downloader.deleteModel(model)
-            }
-
-            if (deleted) {
-                if (loadedModelId == model.id) {
-                    unloadActiveConversation()
-                }
-                if (loadingModelId == model.id) {
-                    loadingModelId = null
-                    isModelLoading = false
-                }
-                if (downloadingModelId == model.id) {
-                    downloadingModelId = null
-                }
-                if (activeModel.id == model.id) {
-                    modelDownloadStatus = downloader.getDownloadStatus(model)
-                }
-                messages.add(
-                    Message("${model.displayName} was deleted from device storage.", false)
-                )
-            } else {
-                messages.add(
-                    Message("Failed to delete ${model.displayName} from device storage.", false)
-                )
-            }
-        }
-    }
-
-    fun sendMessage(prompt: String) {
-        if (selectedAttachmentUri != null) {
-            val attachmentUri = selectedAttachmentUri
-            val attachmentName = selectedAttachmentName ?: "Selected image"
-            val attachmentMimeType = selectedAttachmentMimeType
-            val effectivePrompt = prompt.ifBlank { "Describe this image." }
-            val userMessage = effectivePrompt
-
-            viewModelScope.launch {
-                val savedImagePath = withContext(Dispatchers.IO) {
-                    attachmentUri?.let { mediaStorage.saveChatImage(it, attachmentName) }
-                }
-
-                messages.add(
-                    Message(
-                        text = userMessage,
-                        isUser = true,
-                        messageType = "image",
-                        imagePath = savedImagePath,
-                        imageName = attachmentName
-                    )
-                )
-
-                if (!ensureModelLoaded()) {
-                    messages.add(
-                        Message("The model is not ready yet. Download and load AI model from the model menu in the Settings icon first.", false)
-                    )
-                    return@launch
-                }
-
-                persistMessage(
-                    text = userMessage,
-                    isUser = true,
-                    messageType = "image",
-                    imagePath = savedImagePath,
-                    imageName = attachmentName
-                )
-                isTyping = true
-                val reply = withContext(Dispatchers.IO) {
-                    when {
-                        attachmentUri == null -> "No image was selected."
-                        attachmentMimeType?.startsWith("image/") != true -> {
-                            "Only image attachments are supported right now."
-                        }
-                        else -> {
-                            llm.generateWithImage(effectivePrompt, attachmentUri)
-                        }
-                    }
-                }
-                messages.add(Message(reply, false))
-                persistMessage(reply, isUser = false)
-                clearSelectedAttachment()
-                isTyping = false
-            }
-            return
-        }
-
-        messages.add(Message(prompt, true))
-
-        viewModelScope.launch {
-            if (!ensureModelLoaded()) {
-                messages.add(
-                    Message("The model is not ready yet. Download and load AI model from the model menu in the Settings icon first.", false)
-                )
-                return@launch
-            }
-
-            persistMessage(prompt, isUser = true)
-            val contextualPrompt = buildContextualPrompt()
-            val assistantMessageIndex = messages.size
-            messages.add(Message(text = "...", isUser = false, isStreaming = true))
-            var streamedReply = ""
-            val reply = withContext(Dispatchers.IO) {
-                llm.generateStream(contextualPrompt) { partialReply ->
-                    if (partialReply.isEmpty()) {
-                        return@generateStream
-                    }
-                    streamedReply = mergeStreamChunk(
-                        currentText = streamedReply,
-                        incomingChunk = partialReply
-                    )
-                    viewModelScope.launch {
-                        updateAssistantMessage(
-                            index = assistantMessageIndex,
-                            text = streamedReply,
-                            isStreaming = true
-                        )
-                    }
-                }
-            }
-            val finalReply = when {
-                reply.isNotBlank() -> mergeStreamChunk(
-                    currentText = streamedReply,
-                    incomingChunk = reply
-                )
-                streamedReply.isNotBlank() -> streamedReply
-                else -> "No response generated."
-            }
-            updateAssistantMessage(
-                index = assistantMessageIndex,
-                text = finalReply,
-                isStreaming = false
-            )
-            persistMessage(finalReply, isUser = false)
-        }
-    }
-
-    private fun buildContextualPrompt(): String {
-        val recentMessages = messages
-            .let { currentMessages ->
-                if (
-                    currentMessages.firstOrNull()?.isUser == false &&
-                    currentMessages.firstOrNull()?.text?.startsWith("This app now downloads supported local models") == true
-                ) {
-                    currentMessages.drop(1)
-                } else {
-                    currentMessages
-                }
-            }
-            .takeLast(CONTEXT_MESSAGE_LIMIT)
-
-        if (recentMessages.isEmpty()) return ""
-
-        val conversation = recentMessages.joinToString(separator = "\n") { message ->
-            if (message.isUser) {
-                "User: ${message.text}"
-            } else {
-                "Assistant: ${message.text}"
-            }
-        }
-
-        return buildString {
-            appendLine("Use the recent conversation context when it is relevant.")
-            appendLine("Keep the answer concise and continue naturally from the chat.")
-            appendLine()
-            appendLine(conversation)
-            append("Assistant:")
-        }
-    }
-
-    private suspend fun ensureModelLoaded(): Boolean {
-        val isSameUnsavedChat = loadedSessionId == null && currentSessionId == null
-        val isSameSavedChat = loadedSessionId != null && loadedSessionId == currentSessionId
-        return loadedModelId == activeModel.id && isModelLoaded && (isSameUnsavedChat || isSameSavedChat)
-    }
-
-    fun getModelStatus(model: ModelSpec): ModelDownloadStatus {
-        return if (model.id == downloadingModelId) {
-            modelDownloadStatus
-        } else {
-            downloader.getDownloadStatus(model)
-        }
-    }
-
-    fun getRemoteModelGroup(repoId: String): HFRemoteModelGroup? {
-        return remoteModelGroups.firstOrNull { it.id == repoId }
-    }
-
-    private fun allKnownModels(): List<ModelSpec> {
-        return ModelCatalog.supportedModels + remoteModelGroups.flatMap { it.toVersionModelSpecs() }
-    }
-
-    private fun findKnownModelByDisplayName(displayName: String): ModelSpec? {
-        return allKnownModels().firstOrNull { it.displayName == displayName }
-    }
-
-    fun isLoadingModel(model: ModelSpec): Boolean = loadingModelId == model.id && isModelLoading
-
-    fun isLoadedModel(model: ModelSpec): Boolean {
-        val isSameUnsavedChat = loadedSessionId == null && currentSessionId == null
-        val isSameSavedChat = loadedSessionId != null && loadedSessionId == currentSessionId
-        return loadedModelId == model.id && isModelLoaded && (isSameUnsavedChat || isSameSavedChat)
-    }
-
-    fun getSystemPrompt(model: ModelSpec): String {
-        return if (model.id == activeModel.id) {
-            currentSystemPrompt
-        } else {
-            systemPromptDrafts[model.id] ?: ""
-        }
-    }
-
-    fun updateSystemPrompt(model: ModelSpec, prompt: String) {
-        val trimmedPrompt = prompt
-        systemPromptDrafts[model.id] = trimmedPrompt
-        if (model.id == activeModel.id) {
-            currentSystemPrompt = trimmedPrompt
-            if (isModelLoaded) {
-                unloadActiveConversation()
-            }
-        }
-
-        currentSessionId?.let { sessionId ->
-            if (model.id == activeModel.id) {
-                viewModelScope.launch(Dispatchers.IO) {
-                    chatDao.updateSessionSystemPrompt(sessionId, trimmedPrompt)
-                }
-            }
-        }
-    }
-
-    fun updateCurrentSystemPrompt(prompt: String) {
-        updateSystemPrompt(activeModel, prompt)
-    }
-
-    fun reloadActiveModel() {
-        loadSelectedModel(activeModel)
-    }
-
-    fun loadRemoteModelCatalog() {
-        viewModelScope.launch {
-            remoteModelGroups = withContext(Dispatchers.IO) {
-                try {
-                    remoteModelsRepository.fetchRemoteLiteRtModels()
-                } catch (_: Exception) {
-                    emptyList()
-                }
-            }
-            restoreLoadedSessionModelIfNeeded()
-        }
-    }
-
-    private fun restoreLoadedSessionModelIfNeeded() {
-        val sessionId = currentSessionId ?: return
-        if (loadedModelId != null) return
-
-        viewModelScope.launch {
-            val session = withContext(Dispatchers.IO) {
-                chatDao.getSessionById(sessionId)
-            } ?: return@launch
-
-            val modelName = session.modelName.takeIf { it.isNotBlank() } ?: return@launch
-            findKnownModelByDisplayName(modelName)?.let { model ->
-                loadModelForContext(
-                    model = model,
-                    systemPrompt = session.systemPrompt,
-                    confirmationMessage = "Restored ${model.displayName} for this chat.",
-                    persistSessionConfig = false
-                )
-            }
-        }
-    }
-
-    fun setSelectedAttachment(uri: Uri, displayName: String, mimeType: String?) {
-        selectedAttachmentUri = uri
-        selectedAttachmentName = displayName
-        selectedAttachmentMimeType = mimeType
-    }
-
-    fun clearSelectedAttachment() {
-        selectedAttachmentUri = null
-        selectedAttachmentName = null
-        selectedAttachmentMimeType = null
-    }
-
-    fun startNewChat() {
-        unloadActiveConversation()
-        currentSessionId = null
-        activeModel = ModelCatalog.defaultModel
-        selectedModel = activeModel.displayName
-        currentSystemPrompt = ""
-        systemPromptDrafts.clear()
-        modelDownloadStatus = downloader.getDownloadStatus(activeModel)
-        modelLoadIndicator = null
-        messages.clear()
-        setIntroMessageIfNeeded()
-    }
-
-    fun deleteChatSession(sessionId: Long) {
-        viewModelScope.launch {
-            withContext(Dispatchers.IO) {
-                chatDao.deleteSession(sessionId)
-            }
-
-            if (currentSessionId == sessionId) {
-                unloadActiveConversation()
-                currentSessionId = null
-                messages.clear()
-                activeModel = ModelCatalog.defaultModel
-                selectedModel = activeModel.displayName
-                currentSystemPrompt = ""
-                modelDownloadStatus = downloader.getDownloadStatus(activeModel)
-                modelLoadIndicator = null
-                setIntroMessageIfNeeded()
-            }
-
-            loadChatSessions()
-        }
-    }
-
-    fun loadChatSession(sessionId: Long) {
-        unloadActiveConversation()
-        currentSessionId = sessionId
-        viewModelScope.launch {
-            val session = withContext(Dispatchers.IO) {
-                chatDao.getSessionById(sessionId)
-            } ?: return@launch
-
-            activeModel = ModelCatalog.defaultModel
-            selectedModel = activeModel.displayName
-            modelDownloadStatus = downloader.getDownloadStatus(activeModel)
-            currentSystemPrompt = session.systemPrompt
-            session.modelName.takeIf { it.isNotBlank() }?.let { modelName ->
-                findKnownModelByDisplayName(modelName)?.let { model ->
-                    activeModel = model
-                    selectedModel = model.displayName
-                    systemPromptDrafts[model.id] = session.systemPrompt
-                    modelDownloadStatus = downloader.getDownloadStatus(model)
-                    modelLoadIndicator = "Restoring"
-                }
-            }
-
-            val storedMessages = withContext(Dispatchers.IO) {
-                chatDao.getMessagesForSession(session.id)
-            }
-
-            messages.clear()
-            if (storedMessages.isEmpty()) {
-                setIntroMessageIfNeeded()
-            } else {
-                messages.addAll(
-                    storedMessages.map {
-                        Message(
-                            text = it.text,
-                            isUser = it.isUser,
-                            messageType = it.messageType,
-                            imagePath = it.imagePath,
-                            imageName = it.imageName
-                        )
-                    }
-                )
-            }
-
-            session.modelName.takeIf { it.isNotBlank() }?.let { modelName ->
-                findKnownModelByDisplayName(modelName)?.let { model ->
-                    val loaded = loadModelForContext(
-                        model = model,
-                        systemPrompt = session.systemPrompt,
-                        confirmationMessage = "Restored ${model.displayName} for this chat.",
-                        persistSessionConfig = false
-                    )
-                    if (!loaded) {
-                        messages.add(
-                            Message(
-                                "This chat uses ${model.displayName}, but it is not loaded yet. Download it from Model Settings to continue.",
-                                false
-                            )
-                        )
-                    }
-                }
-            }
-        }
-    }
-
-    private fun startDownloadPolling(model: ModelSpec) {
-        downloadPollingJob?.cancel()
-
-        downloadPollingJob = viewModelScope.launch {
-            var attempts = 0
-            while (attempts < 600) {
-                val latestStatus = downloader.getDownloadStatus(model)
-                isModelLoaded = loadedModelId == activeModel.id
-                modelDownloadStatus = if (
-                    downloadingModelId == model.id &&
-                    !latestStatus.isDownloaded &&
-                    !latestStatus.statusMessage.contains("failed", ignoreCase = true)
-                ) {
-                    latestStatus.copy(
-                        isDownloading = true,
-                        progressPercent = latestStatus.progressPercent ?: modelDownloadStatus.progressPercent ?: 0,
-                        statusMessage = if (latestStatus.statusMessage == "Not downloaded") {
-                            "Starting download"
-                        } else {
-                            latestStatus.statusMessage
-                        }
-                    )
-                } else {
-                    latestStatus
-                }
-
-                if (modelDownloadStatus.isDownloaded) {
-                    if (downloadingModelId == model.id) {
-                        downloadingModelId = null
-                    }
-                    break
-                }
-
-                val isFailure = modelDownloadStatus.statusMessage.contains("failed", ignoreCase = true)
-                if (isFailure) {
-                    if (downloadingModelId == model.id) {
-                        downloadingModelId = null
-                    }
-                    break
-                }
-
-                attempts++
-                delay(1000)
-            }
-        }
-    }
-
-    private fun restoreLatestSession() {
-        viewModelScope.launch {
-            if (currentSessionId != null) {
-                return@launch
-            }
-
-            val latestSession = withContext(Dispatchers.IO) {
-                chatDao.getLatestSession()
-            }
-
-            if (latestSession == null) {
-                return@launch
-            }
-
-            if (currentSessionId != null) {
-                return@launch
-            }
-
-            currentSessionId = latestSession.id
-            activeModel = ModelCatalog.defaultModel
-            selectedModel = activeModel.displayName
-            modelDownloadStatus = downloader.getDownloadStatus(activeModel)
-            currentSystemPrompt = latestSession.systemPrompt
-            latestSession.modelName.takeIf { it.isNotBlank() }?.let { modelName ->
-                findKnownModelByDisplayName(modelName)?.let { model ->
-                    activeModel = model
-                    selectedModel = model.displayName
-                    systemPromptDrafts[model.id] = latestSession.systemPrompt
-                    modelDownloadStatus = downloader.getDownloadStatus(model)
-                    modelLoadIndicator = "Restoring"
-                }
-            }
-
-            val storedMessages = withContext(Dispatchers.IO) {
-                chatDao.getMessagesForSession(latestSession.id)
-            }
-
-            messages.clear()
-            if (storedMessages.isEmpty()) {
-                setIntroMessageIfNeeded()
-            } else {
-                messages.addAll(
-                    storedMessages.map {
-                        Message(
-                            text = it.text,
-                            isUser = it.isUser,
-                            messageType = it.messageType,
-                            imagePath = it.imagePath,
-                            imageName = it.imageName
-                        )
-                    }
-                )
-            }
-
-            latestSession.modelName.takeIf { it.isNotBlank() }?.let { modelName ->
-                findKnownModelByDisplayName(modelName)?.let { model ->
-                    val loaded = loadModelForContext(
-                        model = model,
-                        systemPrompt = latestSession.systemPrompt,
-                        confirmationMessage = "Restored ${model.displayName} for this chat.",
-                        persistSessionConfig = false
-                    )
-                    if (!loaded) {
-                        messages.add(
-                            Message(
-                                "This chat uses ${model.displayName}, but it is not loaded yet. Download it from Model Settings to continue.",
-                                false
-                            )
-                        )
-                    }
-                }
-            }
-        }
-    }
-
-    private fun loadChatSessions() {
-        viewModelScope.launch {
-            chatSessions = withContext(Dispatchers.IO) {
-                chatDao.getAllSessions()
-            }
-        }
-    }
-
-    private suspend fun persistMessage(
-        text: String,
-        isUser: Boolean,
-        messageType: String = "text",
-        imagePath: String? = null,
-        imageName: String? = null
-    ) {
-        val sessionId = ensureSessionExists(firstMessageText = text)
-        if (loadedSessionId == null && isModelLoaded) {
-            loadedSessionId = sessionId
-        }
-        withContext(Dispatchers.IO) {
-            chatDao.insertMessage(
-                ChatMessageEntity(
-                    sessionId = sessionId,
-                    text = text,
-                    isUser = isUser,
-                    messageType = messageType,
-                    imagePath = imagePath,
-                    imageName = imageName,
-                    timestamp = System.currentTimeMillis()
-                )
-            )
-        }
-        loadChatSessions()
-    }
-
-    private suspend fun ensureSessionExists(firstMessageText: String): Long {
-        currentSessionId?.let { return it }
-
-        val sessionTitle = firstMessageText
-            .trim()
-            .replace("\n", " ")
-            .take(SESSION_TITLE_MAX_LENGTH)
-            .ifBlank { "New chat" }
-
-        val sessionId = withContext(Dispatchers.IO) {
-            chatDao.insertSession(
-                ChatSession(
-                    title = sessionTitle,
-                    createdAt = System.currentTimeMillis(),
-                    modelName = activeModel.displayName,
-                    systemPrompt = currentSystemPrompt
-                )
-            )
-        }
-        currentSessionId = sessionId
-        loadChatSessions()
-        return sessionId
-    }
-
-    fun isSelectedSession(sessionId: Long): Boolean = currentSessionId == sessionId
-
-    private fun setIntroMessageIfNeeded() {
-        if (messages.isEmpty()) {
-            messages.add(
-                Message(
-                    "This app now downloads supported local models on demand. It can load MediaPipe .task models and LiteRT-LM .litertlm models directly on device.",
-                    false
-                )
-            )
-        }
-    }
-
-    private fun unloadActiveConversation() {
-        llm.close()
-        loadedModelId = null
-        loadedSessionId = null
-        loadingModelId = null
-        isModelLoaded = false
-        isModelLoading = false
-        modelLoadIndicator = null
-    }
-
-    private suspend fun loadModelForContext(
-        model: ModelSpec,
-        systemPrompt: String,
-        confirmationMessage: String,
-        persistSessionConfig: Boolean
-    ): Boolean {
-        val normalizedPrompt = systemPrompt.trim()
-        val status = downloader.getDownloadStatus(model)
-        modelDownloadStatus = status
-
-        if (!status.isDownloaded) {
-            messages.add(
-                Message("Download ${model.displayName} first, then load it.", false)
-            )
-            loadedModelId = null
-            loadedSessionId = null
-            isModelLoaded = false
-            return false
-        }
-
-        val shouldReload = loadedModelId != model.id || loadedSessionId != currentSessionId || currentSystemPrompt != normalizedPrompt || !isModelLoaded
-        if (shouldReload) {
-            unloadActiveConversation()
-        }
-
-        isModelLoading = true
-        loadingModelId = model.id
-        try {
-            val modelPath = downloader.getModelPath(model)
-            withContext(Dispatchers.IO) {
-                llm.loadModel(modelPath, normalizedPrompt)
-            }
-            loadedModelId = model.id
-            loadedSessionId = currentSessionId
-            currentSystemPrompt = normalizedPrompt
-            systemPromptDrafts[model.id] = normalizedPrompt
-            isModelLoaded = true
-
-            if (persistSessionConfig && currentSessionId != null) {
-                withContext(Dispatchers.IO) {
-                    chatDao.updateSessionModelConfig(
-                        sessionId = currentSessionId!!,
-                        modelName = model.displayName,
-                        systemPrompt = normalizedPrompt
-                    )
-                }
-            }
-
-            messages.add(Message(confirmationMessage, false))
-            return true
-        } catch (e: Exception) {
-            loadedModelId = null
-            loadedSessionId = null
-            isModelLoaded = false
-            messages.add(
-                Message("Failed to load ${model.displayName}: ${e.message ?: "unknown error"}", false)
-            )
-            return false
-        } finally {
-            isModelLoading = false
-            loadingModelId = null
-        }
-    }
-
-    private fun updateAssistantMessage(
-        index: Int,
-        text: String,
-        isStreaming: Boolean
-    ) {
-        if (index in messages.indices) {
-            messages[index] = Message(
-                text = text,
-                isUser = false,
-                isStreaming = isStreaming
-            )
-        }
-    }
-
-    private fun mergeStreamChunk(currentText: String, incomingChunk: String): String {
-        if (incomingChunk.isEmpty()) {
-            return currentText
-        }
-        if (incomingChunk.startsWith(currentText)) {
-            return incomingChunk
-        }
-        return currentText + incomingChunk
+        this.setIntroMessageIfNeeded()
+        this.refreshModelStatus()
+        this.loadRemoteModelCatalog()
+        this.loadChatSessions()
+        this.restoreLatestSession()
     }
 
     override fun onCleared() {

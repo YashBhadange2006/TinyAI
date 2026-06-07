@@ -23,6 +23,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.localmodelai.components.ModelItemRow
 import com.example.localmodelai.data.api.HFRemoteModelGroup
+import com.example.localmodelai.screens.chat.deleteSelectedModel
+import com.example.localmodelai.screens.chat.downloadSelectedModel
+import com.example.localmodelai.screens.chat.getModelStatus
+import com.example.localmodelai.screens.chat.getRemoteModelGroup
+import com.example.localmodelai.screens.chat.getSystemPrompt
+import com.example.localmodelai.screens.chat.isLoadedModel
+import com.example.localmodelai.screens.chat.isLoadingModel
+import com.example.localmodelai.screens.chat.loadSelectedModel
+import com.example.localmodelai.screens.chat.updateSystemPrompt
 import com.example.localmodelai.screens.chat.ChatViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)

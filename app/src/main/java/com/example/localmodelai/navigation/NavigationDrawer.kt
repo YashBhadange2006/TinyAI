@@ -44,6 +44,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.localmodelai.screens.chat.ChatViewModel
+import com.example.localmodelai.screens.chat.deleteChatSession
+import com.example.localmodelai.screens.chat.isSelectedSession
+import com.example.localmodelai.screens.chat.loadChatSession
+import com.example.localmodelai.screens.chat.refreshModelStatus
+import com.example.localmodelai.screens.chat.startNewChat
 import kotlinx.coroutines.launch
 
 private data class PendingDeleteSession(

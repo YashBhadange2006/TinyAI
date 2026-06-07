@@ -23,6 +23,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.localmodelai.screens.chat.ChatViewModel
+import com.example.localmodelai.screens.chat.reloadActiveModel
+import com.example.localmodelai.screens.chat.updateCurrentSystemPrompt
 
 @Composable
 fun ModelSettingsSheetContent(
