@@ -15,9 +15,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.example.localmodelai.screens.chat.ChatViewModel
 
 @Composable
 fun ChatInput(
+    chatViewModel: ChatViewModel,
     selectedAttachmentName: String?,
     onAttachClick: () -> Unit,
     onClearAttachment: () -> Unit,
@@ -100,7 +102,13 @@ fun ChatInput(
                     value = text,
                     onValueChange = { text = it },
                     modifier = Modifier.weight(1f),
-                    placeholder = { Text("Type a message...") },
+                    placeholder = { if(chatViewModel.isModelLoaded){
+                            Text("Type a message...")
+                        } else if(chatViewModel.isNewChat){
+                            Text("Please download or load an existing model from settings")
+                        } else {
+                            Text("Please wait untill model is loaded")
+                        }},
                     minLines = 1,
                     maxLines = 10,
                     colors = TextFieldDefaults.colors(
@@ -109,7 +117,13 @@ fun ChatInput(
                         disabledContainerColor = Color.Transparent,
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent
-                    )
+                    ),
+                    enabled = chatViewModel.isModelLoaded
+//                    supportingText ={
+//                        if(!chatViewModel.isModelLoaded){
+//                           Text("Please wait untill model is loaded")
+//                        }
+//                    }
                 )
 
                 IconButton(

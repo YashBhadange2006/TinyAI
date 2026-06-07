@@ -221,6 +221,7 @@ fun ChatUI(
             },
             bottomBar = {
                 ChatInput(
+                    chatViewModel = chatViewModel,
                     selectedAttachmentName = chatViewModel.selectedAttachmentName,
                     onAttachClick = {
                         attachmentPicker.launch(arrayOf("image/*"))
