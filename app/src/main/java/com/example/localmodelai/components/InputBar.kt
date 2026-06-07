@@ -105,7 +105,7 @@ fun ChatInput(
                     placeholder = { if(chatViewModel.isModelLoaded){
                             Text("Type a message...")
                         } else if(chatViewModel.isNewChat){
-                            Text("Please download or load an existing model from settings")
+                            Text("Please download/load an existing model from settings")
                         } else {
                             Text("Please wait untill model is loaded")
                         }},
@@ -116,14 +116,10 @@ fun ChatInput(
                         unfocusedContainerColor = Color.Transparent,
                         disabledContainerColor = Color.Transparent,
                         focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent
+                        unfocusedIndicatorColor = Color.Transparent,
+                        disabledIndicatorColor = Color.Transparent
                     ),
                     enabled = chatViewModel.isModelLoaded
-//                    supportingText ={
-//                        if(!chatViewModel.isModelLoaded){
-//                           Text("Please wait untill model is loaded")
-//                        }
-//                    }
                 )
 
                 IconButton(

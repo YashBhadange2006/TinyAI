@@ -22,14 +22,14 @@ android {
     }
 
     buildTypes {
-        debug {
-            isMinifyEnabled = true
-            isShrinkResources = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
-        }
+//        debug {
+//            isMinifyEnabled = true
+//            isShrinkResources = false
+//            proguardFiles(
+//                getDefaultProguardFile("proguard-android-optimize.txt"),
+//                "proguard-rules.pro"
+//            )
+//        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
@@ -56,6 +56,7 @@ android {
 
 dependencies {
 
+    implementation(libs.androidx.compose.foundation.layout)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -76,11 +77,14 @@ dependencies {
     //MediaPipe Dependency
     implementation("com.google.mediapipe:tasks-core:0.10.29")
     implementation("com.google.mediapipe:tasks-genai:0.10.29")
-
-
+    //Retrofit Dependency
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    //Extended Material Icons
     implementation("androidx.compose.material:material-icons-extended")
-
+    //Coil Dependency
     implementation("io.coil-kt:coil-compose:2.6.0")
+
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.navigation3.runtime)

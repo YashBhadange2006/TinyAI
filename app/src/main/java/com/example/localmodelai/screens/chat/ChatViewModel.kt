@@ -12,6 +12,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.localmodelai.data.database.AppDatabase
 import com.example.localmodelai.data.database.ChatMessageEntity
 import com.example.localmodelai.data.database.ChatSession
+import com.example.localmodelai.data.api.HFRemoteModelGroup
+import com.example.localmodelai.data.api.HuggingFaceModelsRepository
 import com.example.localmodelai.data.storage.MediaStorage
 import com.example.localmodelai.ai.LocalLLMManager
 import com.example.localmodelai.ai.ModelCatalog
@@ -33,6 +35,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     val mediaStorage = MediaStorage(application)
     private val llm = LocalLLMManager(application)
     private val downloader = ModelDownloader(application)
+    private val remoteModelsRepository = HuggingFaceModelsRepository()
     private val chatDao = AppDatabase.getDatabase(application).chatDao()
     private var activeModel = ModelCatalog.defaultModel
     private var downloadPollingJob: Job? = null
@@ -67,6 +70,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     var chatSessions by mutableStateOf<List<ChatSession>>(emptyList())
         private set
 
+    var remoteModelGroups by mutableStateOf<List<HFRemoteModelGroup>>(emptyList())
+        private set
+
     var selectedAttachmentUri by mutableStateOf<Uri?>(null)
         private set
 
@@ -85,6 +91,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     init {
         setIntroMessageIfNeeded()
         refreshModelStatus()
+        loadRemoteModelCatalog()
         loadChatSessions()
         restoreLatestSession()
     }
@@ -343,6 +350,18 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun getRemoteModelGroup(repoId: String): HFRemoteModelGroup? {
+        return remoteModelGroups.firstOrNull { it.id == repoId }
+    }
+
+    private fun allKnownModels(): List<ModelSpec> {
+        return ModelCatalog.supportedModels + remoteModelGroups.flatMap { it.toVersionModelSpecs() }
+    }
+
+    private fun findKnownModelByDisplayName(displayName: String): ModelSpec? {
+        return allKnownModels().firstOrNull { it.displayName == displayName }
+    }
+
     fun isLoadingModel(model: ModelSpec): Boolean = loadingModelId == model.id && isModelLoading
 
     fun isLoadedModel(model: ModelSpec): Boolean {
@@ -384,6 +403,40 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     fun reloadActiveModel() {
         loadSelectedModel(activeModel)
+    }
+
+    fun loadRemoteModelCatalog() {
+        viewModelScope.launch {
+            remoteModelGroups = withContext(Dispatchers.IO) {
+                try {
+                    remoteModelsRepository.fetchRemoteLiteRtModels()
+                } catch (_: Exception) {
+                    emptyList()
+                }
+            }
+            restoreLoadedSessionModelIfNeeded()
+        }
+    }
+
+    private fun restoreLoadedSessionModelIfNeeded() {
+        val sessionId = currentSessionId ?: return
+        if (loadedModelId != null) return
+
+        viewModelScope.launch {
+            val session = withContext(Dispatchers.IO) {
+                chatDao.getSessionById(sessionId)
+            } ?: return@launch
+
+            val modelName = session.modelName.takeIf { it.isNotBlank() } ?: return@launch
+            findKnownModelByDisplayName(modelName)?.let { model ->
+                loadModelForContext(
+                    model = model,
+                    systemPrompt = session.systemPrompt,
+                    confirmationMessage = "Restored ${model.displayName} for this chat.",
+                    persistSessionConfig = false
+                )
+            }
+        }
     }
 
     fun setSelectedAttachment(uri: Uri, displayName: String, mimeType: String?) {
@@ -446,7 +499,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             modelDownloadStatus = downloader.getDownloadStatus(activeModel)
             currentSystemPrompt = session.systemPrompt
             session.modelName.takeIf { it.isNotBlank() }?.let { modelName ->
-                ModelCatalog.supportedModels.firstOrNull { it.displayName == modelName }?.let { model ->
+                findKnownModelByDisplayName(modelName)?.let { model ->
                     activeModel = model
                     selectedModel = model.displayName
                     systemPromptDrafts[model.id] = session.systemPrompt
@@ -477,7 +530,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             }
 
             session.modelName.takeIf { it.isNotBlank() }?.let { modelName ->
-                ModelCatalog.supportedModels.firstOrNull { it.displayName == modelName }?.let { model ->
+                findKnownModelByDisplayName(modelName)?.let { model ->
                     val loaded = loadModelForContext(
                         model = model,
                         systemPrompt = session.systemPrompt,
@@ -568,7 +621,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             modelDownloadStatus = downloader.getDownloadStatus(activeModel)
             currentSystemPrompt = latestSession.systemPrompt
             latestSession.modelName.takeIf { it.isNotBlank() }?.let { modelName ->
-                ModelCatalog.supportedModels.firstOrNull { it.displayName == modelName }?.let { model ->
+                findKnownModelByDisplayName(modelName)?.let { model ->
                     activeModel = model
                     selectedModel = model.displayName
                     systemPromptDrafts[model.id] = latestSession.systemPrompt
@@ -599,7 +652,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             }
 
             latestSession.modelName.takeIf { it.isNotBlank() }?.let { modelName ->
-                ModelCatalog.supportedModels.firstOrNull { it.displayName == modelName }?.let { model ->
+                findKnownModelByDisplayName(modelName)?.let { model ->
                     val loaded = loadModelForContext(
                         model = model,
                         systemPrompt = latestSession.systemPrompt,

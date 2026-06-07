@@ -10,6 +10,7 @@ import com.example.localmodelai.screens.chat.ChatUI
 import com.example.localmodelai.screens.chat.ChatViewModel
 import com.example.localmodelai.screens.media.MediaScreen
 import com.example.localmodelai.screens.settings.ModelSettingsScreen
+import com.example.localmodelai.screens.settings.RemoteModelVersionsScreen
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -21,6 +22,11 @@ sealed interface PocketAIScreen : NavKey {
     data object ModelMedia: PocketAIScreen
     @Serializable
     data object ModelSettings : PocketAIScreen
+    @Serializable
+    data class RemoteModelVersions(
+        val repoId: String,
+        val title: String
+    ) : PocketAIScreen
 }
 
 @Composable
@@ -65,12 +71,32 @@ fun PocketAINavigation(
                         if (backStack.lastIndex > 0) {
                             backStack.removeAt(backStack.lastIndex)
                         }
+                    },
+                    onOpenRemoteModelVersions = { group ->
+                        backStack.add(
+                            PocketAIScreen.RemoteModelVersions(
+                                repoId = group.id,
+                                title = group.displayName
+                            )
+                        )
                     }
                 )
             }
             entry<PocketAIScreen.ModelMedia> {
                 MediaScreen(
                     chatViewModel = chatViewModel,
+                    onBack = {
+                        if (backStack.lastIndex > 0) {
+                            backStack.removeAt(backStack.lastIndex)
+                        }
+                    }
+                )
+            }
+            entry<PocketAIScreen.RemoteModelVersions> { key ->
+                RemoteModelVersionsScreen(
+                    chatViewModel = chatViewModel,
+                    repoId = key.repoId,
+                    repoTitle = key.title,
                     onBack = {
                         if (backStack.lastIndex > 0) {
                             backStack.removeAt(backStack.lastIndex)

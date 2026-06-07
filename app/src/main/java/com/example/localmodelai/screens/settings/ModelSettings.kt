@@ -4,15 +4,14 @@ import android.content.res.Configuration
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -21,26 +20,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DarkMode
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.LightMode
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SecondaryTabRow
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
-import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -48,27 +37,28 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.localmodelai.ai.ModelCatalog
 import com.example.localmodelai.ai.ModelDownloadStatus
 import com.example.localmodelai.ai.ModelSpec
-import com.example.localmodelai.components.ModelSearchBar
 import com.example.localmodelai.components.ModelItemRow
-import com.example.localmodelai.components.StorageCard
+import com.example.localmodelai.components.ModelSearchBar
+import com.example.localmodelai.components.RemoteModelSummaryCard
+import com.example.localmodelai.data.api.HFRemoteModelGroup
 import com.example.localmodelai.screens.chat.ChatViewModel
 import com.example.localmodelai.ui.theme.LocalModelAITheme
 
-enum class SettingsTab(val title: String){
+enum class SettingsTab(val title: String) {
     EXPLORE("Explore"),
     MY_MODELS("My Models")
 }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ModelSettingsScreen(
@@ -76,19 +66,10 @@ fun ModelSettingsScreen(
     isDarkTheme: Boolean,
     themeModeLabel: String,
     onToggleTheme: () -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onOpenRemoteModelVersions: (HFRemoteModelGroup) -> Unit
 ) {
     var searchQuery by remember { mutableStateOf("") }
-    val searchedModels = remember(searchQuery) {
-        if (searchQuery.isBlank()) {
-            ModelCatalog.supportedModels
-        } else {
-            ModelCatalog.supportedModels.filter { model ->
-                model.displayName.contains(searchQuery, ignoreCase = true) ||
-                    model.description.contains(searchQuery, ignoreCase = true)
-            }
-        }
-    }
 
     Scaffold(
         topBar = {
@@ -111,10 +92,12 @@ fun ModelSettingsScreen(
                                     fontWeight = FontWeight.Bold
                                 )
                             )
+
                             "Light" -> Icon(
                                 imageVector = Icons.Default.LightMode,
                                 contentDescription = "Switch to dark mode"
                             )
+
                             else -> Icon(
                                 imageVector = Icons.Default.DarkMode,
                                 contentDescription = "Switch to system mode"
@@ -126,7 +109,8 @@ fun ModelSettingsScreen(
         }
     ) { innerPadding ->
         ModelSettingsContent(
-            models = searchedModels, // first layer of search filtering
+            builtInModels = ModelCatalog.supportedModels,
+            remoteModelGroups = chatViewModel.remoteModelGroups,
             searchQuery = searchQuery,
             onSearchQueryChange = { searchQuery = it },
             modifier = Modifier.padding(innerPadding),
@@ -137,14 +121,16 @@ fun ModelSettingsScreen(
             onSystemPromptChange = { model, prompt -> chatViewModel.updateSystemPrompt(model, prompt) },
             getStatus = { model -> chatViewModel.getModelStatus(model) },
             checkIsLoading = { model -> chatViewModel.isLoadingModel(model) },
-            checkIsLoaded = { model -> chatViewModel.isLoadedModel(model) }
+            checkIsLoaded = { model -> chatViewModel.isLoadedModel(model) },
+            onOpenRemoteModelVersions = onOpenRemoteModelVersions
         )
     }
 }
 
 @Composable
 fun ModelSettingsContent(
-    models: List<ModelSpec>,
+    builtInModels: List<ModelSpec>,
+    remoteModelGroups: List<HFRemoteModelGroup>,
     searchQuery: String = "",
     onSearchQueryChange: (String) -> Unit = {},
     modifier: Modifier = Modifier,
@@ -155,19 +141,45 @@ fun ModelSettingsContent(
     onSystemPromptChange: (ModelSpec, String) -> Unit,
     getStatus: (ModelSpec) -> ModelDownloadStatus,
     checkIsLoading: (ModelSpec) -> Boolean,
-    checkIsLoaded: (ModelSpec) -> Boolean
+    checkIsLoaded: (ModelSpec) -> Boolean,
+    onOpenRemoteModelVersions: (HFRemoteModelGroup) -> Unit = {}
 ) {
-
     var selectedTab by remember { mutableStateOf(SettingsTab.EXPLORE) }
+    val remoteVersionModels = remember(remoteModelGroups) {
+        remoteModelGroups.flatMap { it.toVersionModelSpecs() }
+    }
+    val allKnownModels = builtInModels + remoteVersionModels
+
+    val filteredBuiltInModels = remember(searchQuery, builtInModels) {
+        if (searchQuery.isBlank()) {
+            builtInModels
+        } else {
+            builtInModels.filter { model ->
+                model.displayName.contains(searchQuery, ignoreCase = true) ||
+                    model.description.contains(searchQuery, ignoreCase = true)
+            }
+        }
+    }
+
+    val filteredRemoteGroups = remember(searchQuery, remoteModelGroups) {
+        if (searchQuery.isBlank()) {
+            remoteModelGroups
+        } else {
+            remoteModelGroups.filter { group ->
+                group.displayName.contains(searchQuery, ignoreCase = true) ||
+                    group.id.contains(searchQuery, ignoreCase = true) ||
+                    group.versionFiles.any { it.fileName.contains(searchQuery, ignoreCase = true) }
+            }
+        }
+    }
+
+    val downloadedModels = allKnownModels.filter { getStatus(it).isDownloaded }
+
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-//        item {
-//            StorageCard()
-//        }
-
         item {
             ModelSearchBar(
                 query = searchQuery,
@@ -182,15 +194,12 @@ fun ModelSettingsContent(
                     .padding(horizontal = 16.dp)
                     .background(
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
-                        shape = RoundedCornerShape(24.dp)
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(24.dp)
                     )
                     .padding(4.dp)
-
             ) {
                 val tabCount = SettingsTab.entries.size
-                val containerWidth = maxWidth
-                val tabWidth = containerWidth / tabCount
-
+                val tabWidth = maxWidth / tabCount
                 val targetOffset = tabWidth * selectedTab.ordinal
 
                 val animatedOffset by animateDpAsState(
@@ -201,6 +210,7 @@ fun ModelSettingsContent(
                     ),
                     label = "TabSlider"
                 )
+
                 Box(
                     modifier = Modifier
                         .width(tabWidth)
@@ -210,47 +220,50 @@ fun ModelSettingsContent(
                         }
                         .background(
                             color = MaterialTheme.colorScheme.surface,
-                            shape = RoundedCornerShape(20.dp)
+                            shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp)
                         )
                 )
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalAlignment = Alignment.CenterVertically
 
-            ) {
-                SettingsTab.entries.forEach { tab ->
-                    val isSelected = selectedTab == tab
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(40.dp)
-                            .background(
-                                color = if (isSelected) MaterialTheme.colorScheme.surface else Color.Transparent,
-                                shape = RoundedCornerShape(20.dp)
-                            )
-                            .clickable(
-                                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
-                                indication = null,
-                                onClick = { selectedTab = tab }
-                            ),
-                        contentAlignment = Alignment.Center
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    androidx.compose.foundation.layout.Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = tab.title,
-                            fontSize = 14.sp,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            color = if (isSelected) {
-                                MaterialTheme.colorScheme.onBackground
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                        SettingsTab.entries.forEach { tab ->
+                            val isSelected = selectedTab == tab
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(40.dp)
+                                    .background(
+                                        color = Color.Transparent,
+                                        shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp)
+                                    )
+                                    .clickable(
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        indication = null,
+                                        onClick = { selectedTab = tab }
+                                    ),
+                                contentAlignment = androidx.compose.ui.Alignment.Center
+                            ) {
+                                Text(
+                                    text = tab.title,
+                                    fontSize = 14.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isSelected) {
+                                        MaterialTheme.colorScheme.onBackground
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                                    }
+                                )
                             }
-                        )
+                        }
                     }
                 }
             }
-        }
         }
 
         item {
@@ -261,56 +274,106 @@ fun ModelSettingsContent(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = if (selectedTab == SettingsTab.EXPLORE)
-                        "Download supported models on demand to get started."
-                    else
-                        "Models downloaded to your device storage that are ready to load.",
+                    text = if (selectedTab == SettingsTab.EXPLORE) {
+                        "Built-in models stay local, and LiteRT community models are fetched from Hugging Face."
+                    } else {
+                        "Models downloaded to your device storage that are ready to load."
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
 
+        if (selectedTab == SettingsTab.EXPLORE) {
+            item {
+                Text(
+                    text = "Built-in Catalog",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold
+                )
+            }
 
-        // second layer of filtering based on tab
-        val filteredModels = when(selectedTab){
-            SettingsTab.EXPLORE -> models
-            SettingsTab.MY_MODELS -> models.filter { model -> getStatus(model).isDownloaded}
-        }
-
-        if(filteredModels.isEmpty()){
-            item{
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 32.dp),
-                    contentAlignment = Alignment.Center
-                ) {
+            if (filteredBuiltInModels.isEmpty()) {
+                item {
                     Text(
-                        text = if(searchQuery.isNotEmpty()){
-                            "No models match \"$searchQuery\""
-                        } else if (selectedTab == SettingsTab.MY_MODELS) {
-                            "No models downloaded yet."
-                        } else "No models available.",
-                        style = MaterialTheme.typography.bodyMedium,
+                        text = if (searchQuery.isNotEmpty()) {
+                            "No built-in models match \"$searchQuery\""
+                        } else {
+                            "No built-in models available."
+                        },
                         color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else {
+                items(filteredBuiltInModels, key = { it.id }) { model ->
+                    ModelItemRow(
+                        model = model,
+                        status = getStatus(model),
+                        systemPrompt = getSystemPrompt(model),
+                        onDownload = { onDownload(model) },
+                        onDelete = { onDelete(model) },
+                        onLoad = { onLoad(model) },
+                        onSystemPromptChange = { prompt -> onSystemPromptChange(model, prompt) },
+                        isLoading = checkIsLoading(model),
+                        isLoaded = checkIsLoaded(model)
+                    )
+                }
+            }
+
+            item {
+                HorizontalDivider()
+            }
+
+            item {
+                Text(
+                    text = "LiteRT Community",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            if (filteredRemoteGroups.isEmpty()) {
+                item {
+                    Text(
+                        text = if (searchQuery.isNotEmpty()) {
+                            "No remote models match \"$searchQuery\""
+                        } else {
+                            "Remote models are loading or unavailable."
+                        },
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else {
+                items(filteredRemoteGroups, key = { it.id }) { group ->
+                    RemoteModelSummaryCard(
+                        title = group.displayName,
+                        subtitle = "${group.versionFiles.size} downloadable .litertlm file${if (group.versionFiles.size == 1) "" else "s"}",
+                        versionLabel = "Open versions",
+                        onClick = { onOpenRemoteModelVersions(group) }
                     )
                 }
             }
         } else {
-            items(filteredModels,key = {it.id}){ model ->
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .animateItem(
-                            fadeInSpec = tween(durationMillis = 250),
-                            fadeOutSpec = tween(durationMillis = 180),
-                            placementSpec = spring(
-                                dampingRatio = Spring.DampingRatioNoBouncy,
-                                stiffness = Spring.StiffnessMediumLow
-                            )
+            if (downloadedModels.isEmpty()) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 32.dp)
+                    ) {
+                        Text(
+                            text = if (searchQuery.isNotEmpty()) {
+                                "No downloaded models match \"$searchQuery\""
+                            } else {
+                                "No models downloaded yet."
+                            },
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                ){
+                    }
+                }
+            } else {
+                items(downloadedModels, key = { it.id }) { model ->
                     ModelItemRow(
                         model = model,
                         status = getStatus(model),
@@ -338,7 +401,7 @@ fun ModelSettingsContent(
 private fun ModelSettingsPreview() {
     LocalModelAITheme {
         ModelSettingsContent(
-            models = listOf(
+            builtInModels = listOf(
                 ModelSpec(
                     id = "tinyllama_task",
                     displayName = "TinyLlama-1.1B-Chat-q8-1280",
@@ -356,6 +419,7 @@ private fun ModelSettingsPreview() {
                     description = "Downloads the hosted MediaPipe .task model on demand, then loads it locally on device."
                 )
             ),
+            remoteModelGroups = emptyList(),
             getStatus = { model ->
                 if (model.id == "tinyllama_task") {
                     ModelDownloadStatus(
