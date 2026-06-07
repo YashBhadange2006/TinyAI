@@ -10,40 +10,51 @@ data class ModelSpec(
 )
 
 object ModelCatalog {
-    val tinyLlama = ModelSpec(
-        id = "tinyllama_task",
-        displayName = "TinyLlama-1.1B-Chat-q8-1280",
-        sizeLabel = "Hosted download",
-        downloadUrl = "https://huggingface.co/Bioniok/LocalModel/resolve/main/TinyLlama-1.1B-Chat-v1.0_multi-prefill-seq_q8_ekv1280.task?download=true",
-        fileName = "TinyLlama-1.1B-Chat-v1.0_multi-prefill-seq_q8_ekv1280.task",
-        description = "Downloads the hosted MediaPipe .task model on demand, then loads it locally on device."
-    )
+//    val tinyLlama = ModelSpec(
+//        id = "tinyllama_task",
+//        displayName = "TinyLlama-1.1B-Chat-q8-1280",
+//        sizeLabel = "Hosted download",
+//        downloadUrl = "https://huggingface.co/Bioniok/LocalModel/resolve/main/TinyLlama-1.1B-Chat-v1.0_multi-prefill-seq_q8_ekv1280.task?download=true",
+//        fileName = "TinyLlama-1.1B-Chat-v1.0_multi-prefill-seq_q8_ekv1280.task",
+//        description = "Downloads the hosted MediaPipe .task model on demand, then loads it locally on device."
+//    )
 
-    val gemma3 = ModelSpec(
-        id = "gemma3",
-        displayName = "Gemma3-1B-q8-4096",
-        sizeLabel = "1.5GB download",
-        downloadUrl = "https://huggingface.co/Bioniok/LocalModel/resolve/main/Gemma3-1B-IT_seq128_q8_ekv4096.task?download=true",
-        fileName = "Gemma3-1B-IT_multi-prefill-seq_q8_ekv4096.task",
-        description = "Downloads the hosted MediaPipe .task model on demand, then loads it locally on device."
-    )
 
-    val qwen3_4b_q4 = ModelSpec(
-        id = "Qwen-4b-4q_task",
-        displayName = "Qwen3-thinking-4b-q4-ekv2048",
-        sizeLabel = "2.1GB download",
-        downloadUrl = "https://huggingface.co/Bioniok/LocalModel/resolve/main/qwen3_thinking_4b_q4_block128_ekv2048.task?download=true",
-        fileName = "qwen3_thinking_4b_q4_block128_ekv2048.task",
-        description = "Downloads the hosted MediaPipe .task model on demand, then loads it locally on device."
-    )
+//    val qwen3_4b_q4 = ModelSpec(
+//        id = "Qwen-4b-4q_task",
+//        displayName = "Qwen3-thinking-4b-q4-ekv2048",
+//        sizeLabel = "2.1GB download",
+//        downloadUrl = "https://huggingface.co/Bioniok/LocalModel/resolve/main/qwen3_thinking_4b_q4_block128_ekv2048.task?download=true",
+//        fileName = "qwen3_thinking_4b_q4_block128_ekv2048.task",
+//        description = "Downloads the hosted MediaPipe .task model on demand, then loads it locally on device."
+//    )
+
+//    val SmolLM = ModelSpec(
+//        id = "SmolLM-135M-Instruct_multi-prefill-seq_f32_ekv1280",
+//        displayName = "SmolLM-135M-Instruct_multi-prefill-seq_f32_ekv1280",
+//        sizeLabel = "553MB download",
+//        downloadUrl = "https://huggingface.co/Bioniok/LocalModel/resolve/main/SmolLM-135M-Instruct_multi-prefill-seq_f32_ekv1280.task?download=true",
+//        fileName = "SmolLM-135M-Instruct_multi-prefill-seq_f32_ekv1280.task",
+//        description = "Downloads the hosted LitertLM .litertlm model on demand, then loads it locally on device."
+//    )
+
+//    val TinySwallow = ModelSpec(
+//        id = "TinySwallow-1.5B-Instruct",
+//        displayName = "TinySwallow-1.5B-Instruct",
+//        sizeLabel = "1.57GB download",
+//        downloadUrl = "https://huggingface.co/litert-community/TinySwallow-1.5B-Instruct/resolve/main/TinySwallow-1.5B-Instruct.litertlm?download=true",
+//        fileName = "TinySwallow-1.5B-Instruct.litertlm",
+//        description = "Downloads the hosted LitertLM .litertlm model on demand, then loads it locally on device."
+//    )
+
 
     val deepseek_r1_distill_qwen_1_5B = ModelSpec(
         id = "DeepSeek-R1-Distill-Qwen_task",
         displayName = "DeepSeek-R1-Distill-Qwen-1.5B-Q8-EKV4096",
         sizeLabel = "1.83GB download",
-        downloadUrl = "https://huggingface.co/Bioniok/LocalModel/resolve/main/DeepSeek-R1-Distill-Qwen-1.5B_multi-prefill-seq_q8_ekv4096.task?download=true",
-        fileName = "DeepSeek-R1-Distill-Qwen-1.5B_multi-prefill-seq_q8_ekv4096.task",
-        description = "Downloads the hosted MediaPipe .task model on demand, then loads it locally on device."
+        downloadUrl = "https://huggingface.co/litert-community/DeepSeek-R1-Distill-Qwen-1.5B/resolve/main/DeepSeek-R1-Distill-Qwen-1.5B_multi-prefill-seq_q8_ekv4096.litertlm?download=true",
+        fileName = "DeepSeek-R1-Distill-Qwen-1.5B_multi-prefill-seq_q8_ekv4096.litertlm",
+        description = "Downloads the hosted LitertLM .litertlm model on demand, then loads it locally on device."
     )
 
     val qwen25_1_5B_Instruct = ModelSpec(
@@ -74,24 +85,15 @@ object ModelCatalog {
         description = "Downloads the hosted LitertLM .litertlm model on demand, then loads it locally on device."
     )
 
-    val SmolLM = ModelSpec(
-        id = "SmolLM-135M-Instruct_multi-prefill-seq_f32_ekv1280",
-        displayName = "SmolLM-135M-Instruct_multi-prefill-seq_f32_ekv1280",
-        sizeLabel = "553MB download",
-        downloadUrl = "https://huggingface.co/Bioniok/LocalModel/resolve/main/SmolLM-135M-Instruct_multi-prefill-seq_f32_ekv1280.task?download=true",
-        fileName = "SmolLM-135M-Instruct_multi-prefill-seq_f32_ekv1280.task",
+    val qwen3_0_6b = ModelSpec(
+        id = "Qwen3-0.6B",
+        displayName = "Qwen3-0.6B",
+        sizeLabel = "614MB download",
+        downloadUrl = "https://huggingface.co/litert-community/Qwen3-0.6B/resolve/main/Qwen3-0.6B.litertlm?download=true",
+        fileName = "Qwen3-0.6B.litertlm",
         description = "Downloads the hosted LitertLM .litertlm model on demand, then loads it locally on device."
     )
 
-    val TinySwallow = ModelSpec(
-        id = "TinySwallow-1.5B-Instruct",
-        displayName = "TinySwallow-1.5B-Instruct",
-        sizeLabel = "1.57GB download",
-        downloadUrl = "https://huggingface.co/litert-community/TinySwallow-1.5B-Instruct/resolve/main/TinySwallow-1.5B-Instruct.litertlm?download=true",
-        fileName = "TinySwallow-1.5B-Instruct.litertlm",
-        description = "Downloads the hosted LitertLM .litertlm model on demand, then loads it locally on device."
-    )
-
-    val supportedModels = listOf(TinySwallow,tinyLlama,SmolLM,gemma3_1b,gemma3,qwen25_1_5B_Instruct,deepseek_r1_distill_qwen_1_5B,gemma4_2b)
-    val defaultModel = gemma3
+    val supportedModels = listOf(gemma4_2b,deepseek_r1_distill_qwen_1_5B,gemma3_1b,qwen25_1_5B_Instruct,qwen3_0_6b)
+    val defaultModel = gemma4_2b
 }
