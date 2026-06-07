@@ -148,7 +148,7 @@ fun ModelSettingsContent(
     val remoteVersionModels = remember(remoteModelGroups) {
         remoteModelGroups.flatMap { it.toVersionModelSpecs() }
     }
-    val allKnownModels = builtInModels + remoteVersionModels
+    val allKnownModels = (builtInModels + remoteVersionModels).distinctBy { it.fileName }
 
     val filteredBuiltInModels = remember(searchQuery, builtInModels) {
         if (searchQuery.isBlank()) {

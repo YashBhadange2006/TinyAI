@@ -38,7 +38,7 @@ data class HFRemoteModelGroup(
             ModelSpec(
                 id = remoteVersionId(file.fileName),
                 displayName = "${displayName} - ${file.fileName.removeSuffix(".litertlm")}",
-                sizeLabel = "LiteRT-LM version",
+                sizeLabel = file.size.toReadableSize(),
                 downloadUrl = file.downloadUrl(id),
                 fileName = file.fileName,
                 description = "Download ${file.fileName} from the ${displayName} model repository."
@@ -63,4 +63,20 @@ fun HFModel.toRemoteGroup(): HFRemoteModelGroup? {
         likes = likes ?: 0,
         versionFiles = files
     )
+}
+
+private fun Long?.toReadableSize(): String {
+    val bytes = this ?: return "Size unavailable"
+    if (bytes <= 0L) return "Size unavailable"
+
+    val kb = 1024.0
+    val mb = kb * 1024.0
+    val gb = mb * 1024.0
+
+    return when {
+        bytes >= gb -> String.format("%.2f GB", bytes / gb)
+        bytes >= mb -> String.format("%.2f MB", bytes / mb)
+        bytes >= kb -> String.format("%.2f KB", bytes / kb)
+        else -> "$bytes B"
+    }
 }
