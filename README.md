@@ -138,6 +138,3 @@ PocketAI is built on top of several excellent open-source projects and framework
 * Room Database
 * Markwon
 * Coil
-
-```
-```
