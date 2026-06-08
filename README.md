@@ -70,8 +70,6 @@ git clone https://github.com/YashBhadange2006/PocketAI.git
 
 4. Build and run the app on your connected Android device.
 
----
-
 ## Usage Workflow
 
 ### 1. Model Acquisition
@@ -87,6 +85,4 @@ After the model finishes downloading, tap **Load** to initialize it in memory.
 Return to the **Chat** screen. If the selected model supports vision capabilities, the attachment icon will be enabled, allowing image-based queries.
 
 ### 5. Persistence
-All chat sessions are automatically saved and can be resumed anytime from the session list.
-```
-   
+All chat sessions are automatically saved and can be resumed anytime from the session list.   
