@@ -56,6 +56,37 @@ The core logic resides in the `LocalLLMManager`, which abstracts the complexity 
 * Recommended 4GB+ of RAM for 1B to 3B parameter models.
 * Sufficient internal storage for model files (typically 500MB to 2.5GB per model).
 
-### Building from Source
+## Building from Source
+
 1. Clone the repository:
+
+```bash
+git clone https://github.com/YashBhadange2006/PocketAI.git
+```
+
+2. Open the project in the latest version of Android Studio.
+
+3. Sync the Gradle files to download the required dependencies.
+
+4. Build and run the app on your connected Android device.
+
+---
+
+## Usage Workflow
+
+### 1. Model Acquisition
+Open the **Settings** screen to browse supported models or search Hugging Face. Download your preferred model using the integrated download manager.
+
+### 2. Configuration
+Optionally, set a custom system prompt to guide the model's behavior.
+
+### 3. Loading
+After the model finishes downloading, tap **Load** to initialize it in memory.
+
+### 4. Interaction
+Return to the **Chat** screen. If the selected model supports vision capabilities, the attachment icon will be enabled, allowing image-based queries.
+
+### 5. Persistence
+All chat sessions are automatically saved and can be resumed anytime from the session list.
+```
    
