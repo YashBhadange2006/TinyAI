@@ -12,6 +12,20 @@ PocketAI is a high-performance Android application designed for private, on-devi
 * **Dynamic Lifecycle Management**: To keep the initial installation size minimal, models are downloaded on demand. The app manages the local storage, loading, and unloading of these assets to optimize device memory usage.
 * **Local Session Persistence**: All conversations and associated media are stored in a local Room database, providing a complete offline history of interactions.
 
+## Application Walkthrough
+
+### Main Chat Interface
+The primary screen is a streamlined chat environment designed for low-latency interaction. It supports real-time text streaming, allowing users to see the model's response as it is generated. The input bar is context-aware; it automatically enables the image attachment button only when a vision-capable model is loaded. If no model is active, the input bar provides clear guidance on how to load one from the settings.
+
+### Model Catalog and Settings
+This screen serves as the command center for the app's AI capabilities. Users can browse a pre-configured list of optimized models or search for specific repositories on Hugging Face. Each model entry displays its download status, size, and local path. From here, users can trigger downloads, delete unused models to free up space, or load a specific model into memory.
+
+### Session Management
+The app supports multiple concurrent chat sessions. Users can view their chat history in a dedicated list, rename sessions for better organization, or delete old conversations. Each session remembers the specific model and system prompt used, allowing for a seamless transition when jumping back into a previous context.
+
+### System Prompt Editor
+Accessible through the model settings, this feature allows for granular control over the model's behavior. Users can write and save custom instructions (e.g., "Act as a Python expert" or "Give concise answers"), which the app then injects as the system instruction during the model initialization phase.
+
 ## Technical Architecture
 
 The application is built using a modern Android stack with a focus on modularity and efficiency.
@@ -23,12 +37,6 @@ The core logic resides in the `LocalLLMManager`, which abstracts the complexity 
 * **Model Downloader**: Orchestrates background downloads via the Android `DownloadManager`. It provides real-time progress updates and handles network interruptions gracefully.
 * **Media Storage**: A specialized system for managing image attachments. When an image is used in a chat, it is cached and linked to the message entry in the database to ensure persistence.
 * **Room Database**: Stores structured data for chat sessions, messages, and model configurations.
-
-### User Interface
-The UI is implemented entirely in Jetpack Compose.
-* **Chat Interface**: A reactive UI that handles streaming text responses and displays image attachments.
-* **Model Catalog**: A centralized hub for managing downloaded models, viewing available models on Hugging Face, and configuring system prompts.
-* **Navigation**: A custom navigation system that manages transitions between the chat, settings, and media viewing screens.
 
 ## Tech Stack
 
