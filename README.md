@@ -72,17 +72,12 @@ git clone https://github.com/YashBhadange2006/PocketAI.git
 
 ## Usage Workflow
 
-### 1. Model Acquisition
-Open the **Settings** screen to browse supported models or search Hugging Face. Download your preferred model using the integrated download manager.
+**1. Model Acquisition** : Open the **Settings** screen to browse supported models or search Hugging Face. Download your preferred model using the integrated download manager.
 
-### 2. Configuration
-Optionally, set a custom system prompt to guide the model's behavior.
+**2. Configuration** : Optionally, set a custom system prompt to guide the model's behavior.
 
-### 3. Loading
-After the model finishes downloading, tap **Load** to initialize it in memory.
+**3. Loading** : After the model finishes downloading, tap **Load** to initialize it in memory.
 
-### 4. Interaction
-Return to the **Chat** screen. If the selected model supports vision capabilities, the attachment icon will be enabled, allowing image-based queries.
+**4. Interaction** : Return to the **Chat** screen. If the selected model supports vision capabilities, the attachment icon will be enabled, allowing image-based queries.
 
-### 5. Persistence
-All chat sessions are automatically saved and can be resumed anytime from the session list.   
+**5. Persistence** : All chat sessions are automatically saved and can be resumed anytime from the session list.   
