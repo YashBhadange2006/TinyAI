@@ -83,6 +83,10 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     var modelLoadIndicator by mutableStateOf<String?>(null)
         internal set
 
+    val modelGpuPreferences = mutableStateMapOf<String, Boolean>()
+
+    fun isGpuEnabledForModel(modelId: String): Boolean = modelGpuPreferences[modelId] ?: false
+
     init {
         this.setIntroMessageIfNeeded()
         this.refreshModelStatus()

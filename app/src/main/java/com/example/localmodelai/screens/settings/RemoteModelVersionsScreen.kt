@@ -33,6 +33,7 @@ import com.example.localmodelai.screens.chat.isLoadingModel
 import com.example.localmodelai.screens.chat.loadSelectedModel
 import com.example.localmodelai.screens.chat.updateSystemPrompt
 import com.example.localmodelai.screens.chat.ChatViewModel
+import com.example.localmodelai.screens.chat.toggleGpu
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -128,7 +129,9 @@ private fun RemoteModelVersionsContent(
                     onLoad = { chatViewModel.loadSelectedModel(model) },
                     onSystemPromptChange = { prompt -> chatViewModel.updateSystemPrompt(model, prompt) },
                     isLoading = chatViewModel.isLoadingModel(model),
-                    isLoaded = chatViewModel.isLoadedModel(model)
+                    isLoaded = chatViewModel.isLoadedModel(model),
+                    isGpuEnabled =  chatViewModel.isGpuEnabledForModel(model.id),
+                    onGpuToggle = { enabled -> chatViewModel.toggleGpu(model.id,enabled) }
                 )
             }
         }

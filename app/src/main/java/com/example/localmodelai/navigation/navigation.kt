@@ -98,6 +98,8 @@ fun PocketAINavigation(
                     getSystemPrompt = { chatViewModel.getSystemPrompt(it) },
                     checkIsLoading = { chatViewModel.isLoadingModel(it) },
                     checkIsLoaded = { chatViewModel.isLoadedModel(it) },
+                    isGpuEnabled = { chatViewModel.isGpuEnabledForModel(it.id) },
+                    onGpuToggle = { model, enabled -> chatViewModel.toggleGpu(model.id, enabled) },
                     onDownload = { chatViewModel.downloadSelectedModel(it) },
                     onDelete = { chatViewModel.deleteSelectedModel(it) },
                     onLoad = { chatViewModel.loadSelectedModel(it) },

@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import com.example.localmodelai.ai.ModelDownloadStatus
 import com.example.localmodelai.ai.ModelSpec
 import com.example.localmodelai.components.ModelItemRow
+import com.example.localmodelai.screens.chat.toggleGpu
 import com.example.localmodelai.ui.theme.LocalModelAITheme
 import com.google.ai.edge.litertlm.Content
 
@@ -37,6 +38,8 @@ fun OnSeeMoreClicked(
     getSystemPrompt: (ModelSpec) -> String,
     checkIsLoading: (ModelSpec) -> Boolean,
     checkIsLoaded: (ModelSpec) -> Boolean,
+    isGpuEnabled: (ModelSpec) -> Boolean,
+    onGpuToggle: (ModelSpec, Boolean) -> Unit,
     onDownload: (ModelSpec) -> Unit,
     onDelete: (ModelSpec) -> Unit,
     onLoad: (ModelSpec) -> Unit,
@@ -81,7 +84,10 @@ fun OnSeeMoreClicked(
                         )
                     },
                     isLoading = checkIsLoading(model),
-                    isLoaded = checkIsLoaded(model)
+                    isLoaded = checkIsLoaded(model),
+                    isGpuEnabled =  isGpuEnabled(model),
+                    onGpuToggle = { enabled -> onGpuToggle(model, enabled) }
+
                 )
             }
         }

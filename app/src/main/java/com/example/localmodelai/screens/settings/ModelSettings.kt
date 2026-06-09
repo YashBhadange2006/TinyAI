@@ -28,6 +28,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.FeaturedPlayList
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.FeaturedPlayList
 import androidx.compose.material.icons.filled.LightMode
@@ -69,6 +70,7 @@ import com.example.localmodelai.screens.chat.isLoadingModel
 import com.example.localmodelai.screens.chat.loadSelectedModel
 import com.example.localmodelai.screens.chat.updateSystemPrompt
 import com.example.localmodelai.screens.chat.ChatViewModel
+import com.example.localmodelai.screens.chat.toggleGpu
 import com.example.localmodelai.ui.theme.LocalModelAITheme
 import org.intellij.lang.annotations.JdkConstants
 
@@ -142,7 +144,9 @@ fun ModelSettingsScreen(
             checkIsLoading = { model -> chatViewModel.isLoadingModel(model) },
             checkIsLoaded = { model -> chatViewModel.isLoadedModel(model) },
             onOpenRemoteModelVersions = onOpenRemoteModelVersions,
-            onSeeMoreClicked = onSeeMoreClicked
+            onSeeMoreClicked = onSeeMoreClicked,
+            isGpuEnabled =  {chatViewModel.isGpuEnabledForModel(it.id)},
+            onGpuToggle = { model, enabled -> chatViewModel.toggleGpu(model.id,enabled) }
         )
     }
 }
@@ -163,7 +167,9 @@ fun ModelSettingsContent(
     checkIsLoading: (ModelSpec) -> Boolean,
     checkIsLoaded: (ModelSpec) -> Boolean,
     onOpenRemoteModelVersions: (HFRemoteModelGroup) -> Unit = {},
-    onSeeMoreClicked: () -> Unit
+    onSeeMoreClicked: () -> Unit,
+    isGpuEnabled: (ModelSpec) -> Boolean,
+    onGpuToggle: (ModelSpec,Boolean) -> Unit
 ) {
     var selectedTab by remember { mutableStateOf(SettingsTab.EXPLORE) }
     val remoteVersionModels = remember(remoteModelGroups) {
@@ -261,7 +267,9 @@ fun ModelSettingsContent(
                                     .height(40.dp)
                                     .background(
                                         color = Color.Transparent,
-                                        shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp)
+                                        shape = androidx.compose.foundation.shape.RoundedCornerShape(
+                                            20.dp
+                                        )
                                     )
                                     .clickable(
                                         interactionSource = remember { MutableInteractionSource() },
@@ -316,13 +324,13 @@ fun ModelSettingsContent(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        imageVector = Icons.Default.FeaturedPlayList,
+                        imageVector = Icons.Default.AutoAwesome,
                         contentDescription = "Recommended Models",
                         tint = MaterialTheme.colorScheme.primary
                     )
                     Text(
                         text = "Recommended",
-                        style = MaterialTheme.typography.titleSmall,
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
 
@@ -340,7 +348,7 @@ fun ModelSettingsContent(
                                 .clickable(
                                     interactionSource = remember { MutableInteractionSource() },
                                     indication = null
-                                ){
+                                ) {
                                     onSeeMoreClicked()
                                 }
                         )
@@ -381,8 +389,9 @@ fun ModelSettingsContent(
                                     )
                                 },
                                 isLoading = checkIsLoading(model),
-                                isLoaded = checkIsLoaded(model)
-                            )
+                                isLoaded = checkIsLoaded(model),
+                                isGpuEnabled = isGpuEnabled(model),
+                                onGpuToggle = { enabled -> onGpuToggle(model, enabled) }                            )
                         }
                     }
                 }
@@ -395,7 +404,7 @@ fun ModelSettingsContent(
 
             item {
                 Text(
-                    text = "LiteRT Community",
+                    text = "Hugging Face Models",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold
                 )
@@ -451,7 +460,9 @@ fun ModelSettingsContent(
                         onLoad = { onLoad(model) },
                         onSystemPromptChange = { prompt -> onSystemPromptChange(model, prompt) },
                         isLoading = checkIsLoading(model),
-                        isLoaded = checkIsLoaded(model)
+                        isLoaded = checkIsLoaded(model),
+                        isGpuEnabled = isGpuEnabled(model),
+                        onGpuToggle = { enabled -> onGpuToggle(model, enabled)}
                     )
                 }
             }
@@ -512,7 +523,9 @@ private fun ModelSettingsPreview() {
             onLoad = {},
             getSystemPrompt = { "" },
             onSystemPromptChange = { _, _ -> },
-            onSeeMoreClicked = {}
+            onSeeMoreClicked = {},
+            isGpuEnabled = { false },
+            onGpuToggle = {_,_->}
         )
     }
 }

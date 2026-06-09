@@ -19,6 +19,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 
+enum class ExecutionBackend {
+    CPU,
+    GPU
+}
+
 class LocalLLMManager(
     private val context: Context
 ) {
@@ -41,33 +46,36 @@ class LocalLLMManager(
     private var loadedModelPath: String? = null
     private var loadedRuntime: ModelRuntime? = null
     private var loadedSystemPrompt: String = ""
+    var loadedBackend: ExecutionBackend? = null //first set to null later default will be CPU
 
-    fun isLoaded(modelPath: String, systemPrompt: String = ""): Boolean {
+    fun isLoaded(modelPath: String, systemPrompt: String = "", backend: ExecutionBackend): Boolean {
         val normalizedPrompt = systemPrompt.trim()
         return when (loadedRuntime) {
-            ModelRuntime.MEDIAPIPE -> loadedModelPath == modelPath && llmInference != null
+            ModelRuntime.MEDIAPIPE -> loadedModelPath == modelPath && llmInference != null && loadedBackend == backend
             ModelRuntime.LITERTLM -> {
                 loadedModelPath == modelPath &&
-                    loadedSystemPrompt == normalizedPrompt &&
-                    liteRtEngine != null &&
-                    liteRtConversation != null
+                        loadedBackend == backend &&
+                        loadedSystemPrompt == normalizedPrompt &&
+                        liteRtEngine != null &&
+                        liteRtConversation != null
             }
             null -> false
         }
     }
 
-    fun loadModel(modelPath: String, systemPrompt: String = "") {
-        if (isLoaded(modelPath, systemPrompt)) return
+    fun loadModel(modelPath: String, systemPrompt: String = "", backend: ExecutionBackend = ExecutionBackend.CPU) {
+        if (isLoaded(modelPath, systemPrompt,backend)) return
 
         close()
 
         if (modelPath.endsWith(".litertlm", ignoreCase = true)) {
-            loadLiteRtLmModel(modelPath, systemPrompt)
+            loadLiteRtLmModel(modelPath, systemPrompt,backend)
         } else {
-            loadMediaPipeModel(modelPath)
+            loadMediaPipeModel(modelPath,backend)
         }
         loadedModelPath = modelPath
         loadedSystemPrompt = systemPrompt.trim()
+        loadedBackend = backend
     }
 
     fun generate(prompt: String): String {
@@ -190,10 +198,13 @@ class LocalLLMManager(
         supportsVision = false
     }
 
-    private fun loadMediaPipeModel(modelPath: String) {
+    private fun loadMediaPipeModel(modelPath: String, backend: ExecutionBackend) {
+
+        val preferred = if(backend == ExecutionBackend.GPU) LlmInference.Backend.GPU else LlmInference.Backend.CPU
         try {
             val options = LlmInference.LlmInferenceOptions.builder()
                 .setModelPath(modelPath)
+                .setPreferredBackend(preferred)
                 .setMaxTokens(DEFAULT_MAX_TOKENS)
                 .setMaxNumImages(1)
                 .build()
@@ -212,15 +223,16 @@ class LocalLLMManager(
         loadedRuntime = ModelRuntime.MEDIAPIPE
     }
 
-    private fun loadLiteRtLmModel(modelPath: String, systemPrompt: String) {
+    private fun loadLiteRtLmModel(modelPath: String, systemPrompt: String, backend: ExecutionBackend) {
+        val selectedBackend = if(backend== ExecutionBackend.GPU) Backend.GPU() else Backend.CPU()
         Engine.Companion.setNativeMinLogSeverity(LogSeverity.ERROR)
 
         var engine: Engine?= null
         try{
             val engineConfig = EngineConfig(
                 modelPath = modelPath,
-                backend = Backend.CPU(),
-                visionBackend = Backend.CPU(),
+                backend = selectedBackend,
+                visionBackend = selectedBackend,
                 cacheDir = context.cacheDir.absolutePath
             )
 

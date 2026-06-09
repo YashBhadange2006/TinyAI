@@ -41,6 +41,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -69,7 +70,7 @@ import com.example.localmodelai.ui.theme.LocalModelAITheme
 data class StorageInfo(
     val totalLabel: String,
     val usedLabel: String,
-    val progressFraction: Float
+    val progressFraction: Float,
 )
 
 @Composable
@@ -77,7 +78,7 @@ fun StorageCard() {
     val context = LocalContext.current
     val deviceName = "${Build.MANUFACTURER} ${Build.MODEL}"
 
-    fun getDetailedStorage(ctx: Context): com.example.localmodelai.components.StorageInfo {
+    fun getDetailedStorage(ctx: Context): StorageInfo {
         return try {
             val path = Environment.getDataDirectory()
             val stat = StatFs(path.path)
@@ -233,13 +234,15 @@ fun ModelItemRow(
     model: ModelSpec,
     status: ModelDownloadStatus,
     systemPrompt: String,
+    isGpuEnabled: Boolean,
     modifier: Modifier = Modifier,
     onDownload: () -> Unit,
     onDelete: () -> Unit,
     onLoad: () -> Unit,
     onSystemPromptChange: (String) -> Unit,
+    onGpuToggle: (Boolean) -> Unit,
     isLoading: Boolean,
-    isLoaded: Boolean
+    isLoaded: Boolean,
 ) {
 
     var isExpanded by remember { mutableStateOf(false)}
@@ -476,9 +479,9 @@ fun ModelItemRow(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable(
-                                    interactionSource = remember { MutableInteractionSource()},
+                                    interactionSource = remember { MutableInteractionSource() },
                                     indication = null
-                                ){
+                                ) {
                                     isExpanded = !isExpanded
                                 },
                             verticalAlignment = Alignment.CenterVertically,
@@ -497,6 +500,10 @@ fun ModelItemRow(
                             )
                         }
                         if(isExpanded){
+
+                            Text("GPU Acceleration", style = MaterialTheme.typography.bodyMedium)
+                            Switch(checked = isGpuEnabled, onCheckedChange = onGpuToggle)
+
                             Text(
                                 text = "System Prompt:",
                                 style = MaterialTheme.typography.bodyMedium,
@@ -548,7 +555,7 @@ fun ModelItemRow(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(brush = gradientBrush,shape = CircleShape)
+                                .background(brush = gradientBrush, shape = CircleShape)
                                 .padding(ButtonDefaults.ContentPadding),
                             contentAlignment = Alignment.Center
                         ) {
@@ -597,7 +604,9 @@ fun ModelItemRowPreview() {
                 systemPrompt = "",
                 onSystemPromptChange = {},
                 isLoading = false,
-                isLoaded = false
+                isLoaded = false,
+                isGpuEnabled = true,
+                onGpuToggle = {}
             )
         }
     }

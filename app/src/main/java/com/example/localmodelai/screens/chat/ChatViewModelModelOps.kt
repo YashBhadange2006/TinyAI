@@ -1,6 +1,7 @@
 package com.example.localmodelai.screens.chat
 
 import androidx.lifecycle.viewModelScope
+import com.example.localmodelai.ai.ExecutionBackend
 import com.example.localmodelai.ai.ModelCatalog
 import com.example.localmodelai.ai.ModelDownloadStatus
 import com.example.localmodelai.ai.ModelSpec
@@ -165,6 +166,15 @@ fun ChatViewModel.updateCurrentSystemPrompt(prompt: String) {
     updateSystemPrompt(activeModel, prompt)
 }
 
+
+
+fun ChatViewModel.toggleGpu(modelId: String, enabled: Boolean) {
+    modelGpuPreferences[modelId] = enabled
+    if(loadedModelId == modelId && isModelLoaded) {
+        reloadActiveModel()
+    }
+}
+
 fun ChatViewModel.reloadActiveModel() {
     loadSelectedModel(activeModel)
 }
@@ -207,6 +217,7 @@ internal suspend fun ChatViewModel.loadModelForContext(
     persistSessionConfig: Boolean
 ): Boolean {
     val normalizedPrompt = systemPrompt.trim()
+    val backend = if(isGpuEnabledForModel(model.id)) ExecutionBackend.GPU else ExecutionBackend.CPU
     val status = downloader.getDownloadStatus(model)
     modelDownloadStatus = status
 
@@ -220,7 +231,7 @@ internal suspend fun ChatViewModel.loadModelForContext(
         return false
     }
 
-    val shouldReload = loadedModelId != model.id || loadedSessionId != currentSessionId || currentSystemPrompt != normalizedPrompt || !isModelLoaded
+    val shouldReload = loadedModelId != model.id || loadedSessionId != currentSessionId || currentSystemPrompt != normalizedPrompt || !isModelLoaded || llm.loadedBackend != backend
     if (shouldReload) {
         unloadActiveConversation()
     }
@@ -230,7 +241,7 @@ internal suspend fun ChatViewModel.loadModelForContext(
     return try {
         val modelPath = downloader.getModelPath(model)
         withContext(Dispatchers.IO) {
-            llm.loadModel(modelPath, normalizedPrompt)
+            llm.loadModel(modelPath, normalizedPrompt,backend)
         }
         loadedModelId = model.id
         loadedSessionId = currentSessionId
