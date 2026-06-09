@@ -1,19 +1,17 @@
 package com.example.localmodelai.components
 
-import android.app.appsearch.StorageInfo
 import android.content.Context
 import android.content.res.Configuration
-import android.graphics.drawable.Icon
 import android.os.Build
 import android.os.Environment
 import android.os.StatFs
 import android.text.format.Formatter
-import androidx.annotation.RequiresApi
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -24,11 +22,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -55,13 +51,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.localmodelai.R
 import com.example.localmodelai.ai.ModelDownloadStatus
 import com.example.localmodelai.ai.ModelSpec
 import com.example.localmodelai.ui.theme.LocalModelAITheme
@@ -190,6 +189,45 @@ fun StorageCard() {
     }
 }
 
+
+@Composable
+private fun ModelIcon(modelName: String) {
+    val nameLower = modelName.lowercase()
+    when{
+        nameLower.contains("deepseek") -> {
+            Icon(
+                painter = painterResource(id = R.drawable.ic_deepseek),
+                contentDescription = null,
+                tint = Color.Unspecified,
+                modifier = Modifier.size(24.dp)
+            )
+        }
+        nameLower.contains("gemma") -> {
+            Icon(
+                painter = painterResource(id = R.drawable.ic_gemma),
+                contentDescription = null,
+                tint = Color.Unspecified,
+                modifier = Modifier.size(24.dp)
+            )
+        }
+        nameLower.contains("qwen") -> {
+            Icon(
+                painter = painterResource(id = R.drawable.ic_qwen),
+                contentDescription = null,
+                tint = Color.Unspecified,
+                modifier = Modifier.size(24.dp)
+            )
+        }
+        else -> {
+            Icon(
+                imageVector = Icons.Default.AutoAwesome,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(24.dp)
+            )
+        }
+    }
+}
 @Composable
 fun ModelItemRow(
     model: ModelSpec,
@@ -211,13 +249,40 @@ fun ModelItemRow(
         label ="ArrowRotation"
     )
 
+    val gradientBrush = Brush.linearGradient(
+        colors = listOf(
+            MaterialTheme.colorScheme.primary,
+            MaterialTheme.colorScheme.inversePrimary
+        )
+    )
+
+    val glowingBorderBrush = Brush.linearGradient(
+        colors = listOf(
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.6f), //glow
+            MaterialTheme.colorScheme.inversePrimary.copy(alpha = 0.2f),
+            Color.Transparent
+        )
+    )
+
     Card(
         shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceBright
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        modifier = modifier.padding(5.dp),
+        modifier = modifier
+            .padding(5.dp)
+            .shadow(
+                elevation = 12.dp,
+                shape = RoundedCornerShape(28.dp),
+                ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
+                spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
+            )
+            .border(
+                width = 1.dp,
+                brush = glowingBorderBrush,
+                shape = RoundedCornerShape(28.dp)
+            ),
         onClick = {
             if(status.isDownloaded){
                 isExpanded = !isExpanded
@@ -243,12 +308,7 @@ fun ModelItemRow(
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.AutoAwesome,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(24.dp)
-                    )
+                    ModelIcon(model.displayName)
                 }
 
                 // Name, Description, Size, and Loaded Tag
@@ -478,13 +538,22 @@ fun ModelItemRow(
                 else -> {
                     Button(
                         onClick = onDownload,
-                        shape = RoundedCornerShape(16.dp),
+                        shape = CircleShape,
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary
+                            containerColor = Color.Transparent,
+                            disabledContainerColor = Color.Transparent
                         )
                     ) {
-                        Text("Download Model", fontWeight = FontWeight.SemiBold)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(brush = gradientBrush,shape = CircleShape)
+                                .padding(ButtonDefaults.ContentPadding),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("Download Model", fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onPrimary)
+                        }
                     }
                 }
             }
@@ -528,7 +597,7 @@ fun ModelItemRowPreview() {
                 systemPrompt = "",
                 onSystemPromptChange = {},
                 isLoading = false,
-                isLoaded = true
+                isLoaded = false
             )
         }
     }
