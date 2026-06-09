@@ -1,5 +1,6 @@
 package com.example.localmodelai.screens.settings
 
+import android.R.attr.onClick
 import android.content.res.Configuration
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
@@ -12,18 +13,25 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.FeaturedPlayList
 import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.FeaturedPlayList
 import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.Recommend
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -37,6 +45,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.IntOffset
@@ -61,6 +70,7 @@ import com.example.localmodelai.screens.chat.loadSelectedModel
 import com.example.localmodelai.screens.chat.updateSystemPrompt
 import com.example.localmodelai.screens.chat.ChatViewModel
 import com.example.localmodelai.ui.theme.LocalModelAITheme
+import org.intellij.lang.annotations.JdkConstants
 
 enum class SettingsTab(val title: String) {
     EXPLORE("Explore"),
@@ -75,7 +85,8 @@ fun ModelSettingsScreen(
     themeModeLabel: String,
     onToggleTheme: () -> Unit,
     onBack: () -> Unit,
-    onOpenRemoteModelVersions: (HFRemoteModelGroup) -> Unit
+    onOpenRemoteModelVersions: (HFRemoteModelGroup) -> Unit,
+    onSeeMoreClicked: () -> Unit
 ) {
     var searchQuery by remember { mutableStateOf("") }
 
@@ -130,7 +141,8 @@ fun ModelSettingsScreen(
             getStatus = { model -> chatViewModel.getModelStatus(model) },
             checkIsLoading = { model -> chatViewModel.isLoadingModel(model) },
             checkIsLoaded = { model -> chatViewModel.isLoadedModel(model) },
-            onOpenRemoteModelVersions = onOpenRemoteModelVersions
+            onOpenRemoteModelVersions = onOpenRemoteModelVersions,
+            onSeeMoreClicked = onSeeMoreClicked
         )
     }
 }
@@ -150,7 +162,8 @@ fun ModelSettingsContent(
     getStatus: (ModelSpec) -> ModelDownloadStatus,
     checkIsLoading: (ModelSpec) -> Boolean,
     checkIsLoaded: (ModelSpec) -> Boolean,
-    onOpenRemoteModelVersions: (HFRemoteModelGroup) -> Unit = {}
+    onOpenRemoteModelVersions: (HFRemoteModelGroup) -> Unit = {},
+    onSeeMoreClicked: () -> Unit
 ) {
     var selectedTab by remember { mutableStateOf(SettingsTab.EXPLORE) }
     val remoteVersionModels = remember(remoteModelGroups) {
@@ -202,7 +215,7 @@ fun ModelSettingsContent(
                     .padding(horizontal = 16.dp)
                     .background(
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
-                        shape = androidx.compose.foundation.shape.RoundedCornerShape(24.dp)
+                        shape = RoundedCornerShape(24.dp)
                     )
                     .padding(4.dp)
             ) {
@@ -235,10 +248,10 @@ fun ModelSettingsContent(
                 Box(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    androidx.compose.foundation.layout.Row(
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         SettingsTab.entries.forEach { tab ->
                             val isSelected = selectedTab == tab
@@ -255,7 +268,7 @@ fun ModelSettingsContent(
                                         indication = null,
                                         onClick = { selectedTab = tab }
                                     ),
-                                contentAlignment = androidx.compose.ui.Alignment.Center
+                                contentAlignment = Alignment.Center
                             ) {
                                 Text(
                                     text = tab.title,
@@ -295,11 +308,44 @@ fun ModelSettingsContent(
 
         if (selectedTab == SettingsTab.EXPLORE) {
             item {
-                Text(
-                    text = "Built-in Catalog",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold
-                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.FeaturedPlayList,
+                        contentDescription = "Recommended Models",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "Recommended",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                    ){
+                        Text(
+                            "See more",
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .align(Alignment.CenterEnd)
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ){
+                                    onSeeMoreClicked()
+                                }
+                        )
+                    }
+                }
             }
 
             if (filteredBuiltInModels.isEmpty()) {
@@ -314,19 +360,33 @@ fun ModelSettingsContent(
                     )
                 }
             } else {
-                items(filteredBuiltInModels, key = { it.id }) { model ->
-                    ModelItemRow(
-                        model = model,
-                        status = getStatus(model),
-                        systemPrompt = getSystemPrompt(model),
-                        onDownload = { onDownload(model) },
-                        onDelete = { onDelete(model) },
-                        onLoad = { onLoad(model) },
-                        onSystemPromptChange = { prompt -> onSystemPromptChange(model, prompt) },
-                        isLoading = checkIsLoading(model),
-                        isLoaded = checkIsLoaded(model)
-                    )
+
+                item{
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(filteredBuiltInModels, key = { it.id }) { model ->
+                            ModelItemRow(
+                                model = model,
+                                status = getStatus(model),
+                                systemPrompt = getSystemPrompt(model),
+                                modifier = Modifier.fillParentMaxWidth(0.85f), // responsively handle Card layout, 85% of any size of screen
+                                onDownload = { onDownload(model) },
+                                onDelete = { onDelete(model) },
+                                onLoad = { onLoad(model) },
+                                onSystemPromptChange = { prompt ->
+                                    onSystemPromptChange(
+                                        model,
+                                        prompt
+                                    )
+                                },
+                                isLoading = checkIsLoading(model),
+                                isLoaded = checkIsLoaded(model)
+                            )
+                        }
+                    }
                 }
+
             }
 
             item {
@@ -451,7 +511,8 @@ private fun ModelSettingsPreview() {
             onDelete = {},
             onLoad = {},
             getSystemPrompt = { "" },
-            onSystemPromptChange = { _, _ -> }
+            onSystemPromptChange = { _, _ -> },
+            onSeeMoreClicked = {}
         )
     }
 }

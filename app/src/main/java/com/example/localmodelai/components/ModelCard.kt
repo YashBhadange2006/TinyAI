@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -194,6 +195,7 @@ fun ModelItemRow(
     model: ModelSpec,
     status: ModelDownloadStatus,
     systemPrompt: String,
+    modifier: Modifier = Modifier,
     onDownload: () -> Unit,
     onDelete: () -> Unit,
     onLoad: () -> Unit,
@@ -215,11 +217,9 @@ fun ModelItemRow(
             containerColor = MaterialTheme.colorScheme.surfaceBright
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(5.dp),
+        modifier = modifier.padding(5.dp),
         onClick = {
-            if(isLoading){
+            if(status.isDownloaded){
                 isExpanded = !isExpanded
             }
         }
@@ -264,7 +264,9 @@ fun ModelItemRow(
                         Text(
                             text = model.displayName,
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.weight(1f),
+                            maxLines = 1
                         )
                         // loaded tag
                         if (isLoaded) {

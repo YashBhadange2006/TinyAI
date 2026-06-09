@@ -6,15 +6,21 @@ import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
+import com.example.localmodelai.ai.ModelCatalog
 import com.example.localmodelai.screens.chat.ChatUI
 import com.example.localmodelai.screens.chat.ChatViewModel
+import com.example.localmodelai.screens.chat.*
+import com.example.localmodelai.screens.chat.getSystemPrompt
 import com.example.localmodelai.screens.media.MediaScreen
 import com.example.localmodelai.screens.settings.ModelSettingsScreen
+import com.example.localmodelai.screens.settings.OnSeeMoreClicked
 import com.example.localmodelai.screens.settings.RemoteModelVersionsScreen
 import kotlinx.serialization.Serializable
 
 @Serializable
 sealed interface PocketAIScreen : NavKey {
+    @Serializable
+    data object RecommendedModels: PocketAIScreen
     @Serializable
     data object Chat : PocketAIScreen
 
@@ -79,6 +85,27 @@ fun PocketAINavigation(
                                 title = group.displayName
                             )
                         )
+                    },
+                    onSeeMoreClicked = {
+                        backStack.add(PocketAIScreen.RecommendedModels)
+                    }
+                )
+            }
+            entry<PocketAIScreen.RecommendedModels> {
+                OnSeeMoreClicked(
+                    modelsList = ModelCatalog.supportedModels,
+                    getStatus = { chatViewModel.getModelStatus(it) },
+                    getSystemPrompt = { chatViewModel.getSystemPrompt(it) },
+                    checkIsLoading = { chatViewModel.isLoadingModel(it) },
+                    checkIsLoaded = { chatViewModel.isLoadedModel(it) },
+                    onDownload = { chatViewModel.downloadSelectedModel(it) },
+                    onDelete = { chatViewModel.deleteSelectedModel(it) },
+                    onLoad = { chatViewModel.loadSelectedModel(it) },
+                    onSystemPromptChange = { model, prompt -> chatViewModel.updateSystemPrompt(model, prompt) },
+                    onBack = {
+                        if (backStack.lastIndex > 0) {
+                            backStack.removeAt(backStack.lastIndex)
+                        }
                     }
                 )
             }
