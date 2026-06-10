@@ -16,6 +16,7 @@ import com.example.localmodelai.screens.settings.ModelSettingsScreen
 import com.example.localmodelai.screens.settings.OnSeeMoreClicked
 import com.example.localmodelai.screens.settings.RemoteModelVersionsScreen
 import kotlinx.serialization.Serializable
+import androidx.core.net.toUri
 
 @Serializable
 sealed interface PocketAIScreen : NavKey {
@@ -29,9 +30,11 @@ sealed interface PocketAIScreen : NavKey {
     @Serializable
     data object ModelSettings : PocketAIScreen
     @Serializable
+    data object HelpAndFeedback : PocketAIScreen
+    @Serializable
     data class RemoteModelVersions(
         val repoId: String,
-        val title: String
+        val title: String,
     ) : PocketAIScreen
 }
 
@@ -39,7 +42,7 @@ sealed interface PocketAIScreen : NavKey {
 fun PocketAINavigation(
     isDarkTheme: Boolean,
     themeModeLabel: String,
-    onToggleTheme: () -> Unit
+    onToggleTheme: () -> Unit,
 ) {
     val backStack = rememberNavBackStack(PocketAIScreen.Chat)
     val chatViewModel: ChatViewModel = viewModel()
@@ -63,6 +66,11 @@ fun PocketAINavigation(
                     onOpenModelMedia = {
                         if (backStack.lastOrNull() != PocketAIScreen.ModelMedia){
                             backStack.add(PocketAIScreen.ModelMedia)
+                        }
+                    },
+                    onOpenHelpAndFeedback = {
+                        if (backStack.lastOrNull() != PocketAIScreen.HelpAndFeedback) {
+                            backStack.add(PocketAIScreen.HelpAndFeedback)
                         }
                     }
                 )
@@ -130,6 +138,23 @@ fun PocketAINavigation(
                         if (backStack.lastIndex > 0) {
                             backStack.removeAt(backStack.lastIndex)
                         }
+                    }
+                )
+            }
+            entry<PocketAIScreen.HelpAndFeedback> {
+                val context = androidx.compose.ui.platform.LocalContext.current
+                com.example.localmodelai.screens.feedback.HelpAndFeedbackScreen(
+                    onBackClick = {
+                        if (backStack.lastIndex > 0) {
+                            backStack.removeAt(backStack.lastIndex)
+                        }
+                    },
+                    onGitHubClick = {
+                        val intent = android.content.Intent(
+                            android.content.Intent.ACTION_VIEW,
+                            "https://github.com/YashBhadange2006/PocketAI.git".toUri()
+                        )
+                        context.startActivity(intent)
                     }
                 )
             }

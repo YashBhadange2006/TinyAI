@@ -62,6 +62,7 @@ fun AppNavigationDrawer(
     drawerState: DrawerState,
     onOpenModelSettings: () -> Unit,
     onOpenModelMedia: () -> Unit,
+    onOpenHelpAndFeedback: () -> Unit,
     content: @Composable () -> Unit
 ) {
     var pendingDeleteSession by remember { mutableStateOf<PendingDeleteSession?>(null) }
@@ -144,7 +145,10 @@ fun AppNavigationDrawer(
                                 modifier = Modifier.size(22.dp)
                             )
                         },
-                        onClick = {},
+                        onClick = {
+                            scope.launch { drawerState.close() }
+                            onOpenHelpAndFeedback()
+                        },
                         modifier = Modifier.padding(vertical = 2.dp)
                     )
                     Spacer(Modifier.height(16.dp))

@@ -5,6 +5,7 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -15,12 +16,15 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.localmodelai.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -75,10 +79,15 @@ fun GitHubContributionCard(onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onClick() },
+            .clickable (
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = { onClick() }
+            ),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.primaryContainer
         ),
+
         shape = MaterialTheme.shapes.extraLarge
     ) {
         Row(
@@ -116,7 +125,11 @@ fun GitHubContributionCard(onClick: () -> Unit) {
                         contentColor = MaterialTheme.colorScheme.primaryContainer
                     )
                 ) {
-                    Icon(Icons.Default.Terminal, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_link),
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp)
+                    )
                     Spacer(Modifier.width(8.dp))
                     Text("Visit GitHub")
                 }
@@ -211,7 +224,7 @@ fun HumanSignatureFooter() {
         Spacer(modifier = Modifier.height(4.dp))
 
         Text(
-            text = "100% local inference. Zero cloud trackers. Powered entirely by open-source code and an aggressive amount of caffeine.",
+            text = "100% local inference. Powered entirely by open-source code and an aggressive amount of caffeine.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
