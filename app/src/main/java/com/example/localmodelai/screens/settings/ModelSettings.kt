@@ -2,9 +2,11 @@ package com.example.localmodelai.screens.settings
 
 import android.R.attr.onClick
 import android.content.res.Configuration
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -14,6 +16,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -33,12 +36,17 @@ import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.FeaturedPlayList
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Recommend
+import androidx.compose.material.icons.filled.Thermostat
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -60,6 +68,7 @@ import com.example.localmodelai.ai.ModelSpec
 import com.example.localmodelai.components.ModelItemRow
 import com.example.localmodelai.components.ModelSearchBar
 import com.example.localmodelai.components.RemoteModelSummaryCard
+import com.example.localmodelai.components.ThermalGuardCard
 import com.example.localmodelai.data.api.HFRemoteModelGroup
 import com.example.localmodelai.screens.chat.deleteSelectedModel
 import com.example.localmodelai.screens.chat.downloadSelectedModel
@@ -207,6 +216,11 @@ fun ModelSettingsContent(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+
+        // will implement this feature in future if needed
+//        item {
+//            ThermalGuardCard()
+//        }
         item {
             ModelSearchBar(
                 query = searchQuery,

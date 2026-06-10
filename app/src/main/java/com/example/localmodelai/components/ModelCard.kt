@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -40,6 +41,9 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -501,9 +505,32 @@ fun ModelItemRow(
                         }
                         if(isExpanded){
 
-                            Text("GPU Acceleration", style = MaterialTheme.typography.bodyMedium)
-                            Switch(checked = isGpuEnabled, onCheckedChange = onGpuToggle)
+                            Text("Processing Mode",
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(top = 8.dp, bottom = 6.dp)
+                            )
 
+                            SingleChoiceSegmentedButtonRow(
+                                modifier = Modifier
+                                    .width(210.dp)
+                                    .padding(vertical = 8.dp)
+                            ) {
+                                SegmentedButton(
+                                    selected = !isGpuEnabled,
+                                    onClick = {onGpuToggle(false)},
+                                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
+                                ) {
+                                    Text("CPU")
+                                }
+
+                                SegmentedButton(
+                                    selected = isGpuEnabled,
+                                    onClick = {onGpuToggle(true)},
+                                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
+                                ) {
+                                    Text("GPU")
+                                }
+                            }
                             Text(
                                 text = "System Prompt:",
                                 style = MaterialTheme.typography.bodyMedium,
