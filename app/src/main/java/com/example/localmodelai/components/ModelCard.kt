@@ -26,10 +26,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.Hub
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.PhoneAndroid
+import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -201,25 +205,25 @@ private fun ModelIcon(modelName: String) {
     when{
         nameLower.contains("deepseek") -> {
             Icon(
-                painter = painterResource(id = R.drawable.ic_deepseek),
+                imageVector = Icons.Default.Psychology ,
                 contentDescription = null,
-                tint = Color.Unspecified,
+                tint = MaterialTheme.colorScheme.tertiary,
                 modifier = Modifier.size(24.dp)
             )
         }
         nameLower.contains("gemma") -> {
             Icon(
-                painter = painterResource(id = R.drawable.ic_gemma),
+                imageVector = Icons.Default.Hub,
                 contentDescription = null,
-                tint = Color.Unspecified,
+                tint = MaterialTheme.colorScheme.secondary,
                 modifier = Modifier.size(24.dp)
             )
         }
         nameLower.contains("qwen") -> {
             Icon(
-                painter = painterResource(id = R.drawable.ic_qwen),
+                imageVector = Icons.AutoMirrored.Filled.MenuBook,
                 contentDescription = null,
-                tint = Color.Unspecified,
+                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(24.dp)
             )
         }
