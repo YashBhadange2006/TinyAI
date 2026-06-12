@@ -227,7 +227,7 @@ class LocalLLMManager(
         val selectedBackend = if(backend== ExecutionBackend.GPU) Backend.GPU() else Backend.CPU()
         Engine.Companion.setNativeMinLogSeverity(LogSeverity.ERROR)
 
-        var engine: Engine?= null
+        var engine: Engine? = null
         try{
             val engineConfig = EngineConfig(
                 modelPath = modelPath,
@@ -236,7 +236,7 @@ class LocalLLMManager(
                 cacheDir = context.cacheDir.absolutePath
             )
 
-            val engine = Engine(engineConfig)
+            engine = Engine(engineConfig)
             engine.initialize()
             supportsVision = true
         } catch (e: Exception){
