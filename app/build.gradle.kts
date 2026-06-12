@@ -7,11 +7,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.localmodelai"
+    namespace = "com.yashbhadange.tinyai"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.localmodelai"
+        applicationId = "com.yashbhadange.tinyai"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
@@ -40,12 +40,12 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     kotlin {
         compilerOptions {
-            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
         }
     }
 

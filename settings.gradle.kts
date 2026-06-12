@@ -19,6 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "LocalModelAI"
+rootProject.name = "TinyAI"
 include(":app")
  

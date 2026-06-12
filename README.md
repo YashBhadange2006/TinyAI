@@ -1,10 +1,10 @@
-# PocketAI
+# TinyAI
 
-PocketAI is a high-performance Android application designed for private, on-device large language model (LLM) inference. By leveraging MediaPipe GenAI and LiteRT-LM runtimes, the app executes models locally on mobile hardware, ensuring that data never leaves the device and functionality remains available without an active internet connection.
+TinyAI is a high-performance Android application designed for private, on-device large language model (LLM) inference. By leveraging MediaPipe GenAI and LiteRT-LM runtimes, the app executes models locally on mobile hardware, ensuring that data never leaves the device and functionality remains available without an active internet connection.
 
-## Why PocketAI?
+## Why TinyAI?
 
-PocketAI focuses on fully local AI execution on Android devices. Unlike cloud-based AI assistants, all inference is performed directly on-device, ensuring privacy, offline availability, and reduced latency. User data never leaves the device, making PocketAI a practical solution for running modern language and vision models without relying on external servers.
+TinyAI focuses on fully local AI execution on Android devices. Unlike cloud-based AI assistants, all inference is performed directly on-device, ensuring privacy, offline availability, and reduced latency. User data never leaves the device, making TinyAI a practical solution for running modern language and vision models without relying on external servers.
 
 ## Key Features
 
@@ -104,7 +104,7 @@ Stores structured data for chat sessions, messages, and model configurations.
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/YashBhadange2006/PocketAI.git
+git clone https://github.com/YashBhadange2006/TinyAI.git
 ```
 
 2. Open the project in the latest version of Android Studio.
@@ -127,7 +127,7 @@ git clone https://github.com/YashBhadange2006/PocketAI.git
 
 ## Acknowledgements
 
-PocketAI is built on top of several excellent open-source projects and frameworks:
+TinyAI is built on top of several excellent open-source projects and frameworks:
 
 * MediaPipe GenAI
 * LiteRT-LM

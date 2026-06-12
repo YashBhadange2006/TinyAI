@@ -2,7 +2,7 @@
 
 Last updated: June 11, 2026
 
-PocketAI is designed to run locally on your device. This policy explains what data is stored, what may leave the device, and what you control.
+TinyAI is designed to run locally on your device. This policy explains what data is stored, what may leave the device, and what you control.
 
 ## What the app stores locally
 
