@@ -22,12 +22,12 @@ fun ChatViewModel.sendMessage(prompt: String) {
 
             messages.add(
                 Message(
-                    text = userMessage,
-                    isUser = true,
-                    messageType = "image",
-                    imagePath = savedImagePath,
-                    imageName = attachmentName
-                )
+                text = userMessage,
+                isUser = true,
+                messageType = "image",
+                imagePath = savedImagePath,
+                imageName = attachmentName
+            )
             )
 
             if (!ensureModelLoaded()) {
@@ -56,8 +56,19 @@ fun ChatViewModel.sendMessage(prompt: String) {
                     }
                 }
             }
-            messages.add(Message(reply, false))
-            persistMessage(reply, isUser = false)
+            val parsedReply = splitThinkingFromAnswer(reply)
+            messages.add(
+                Message(
+                    text = parsedReply.answer.ifBlank { "No response generated." },
+                    isUser = false,
+                    thinkingText = parsedReply.thinking
+                )
+            )
+            persistMessage(
+                text = parsedReply.answer.ifBlank { "No response generated." },
+                isUser = false,
+                thinkingText = parsedReply.thinking
+            )
             clearSelectedAttachment()
             isTyping = false
         }
@@ -88,29 +99,39 @@ fun ChatViewModel.sendMessage(prompt: String) {
                     currentText = streamedReply,
                     incomingChunk = partialReply
                 )
+                val parsedReply = splitThinkingFromAnswer(streamedReply)
                 viewModelScope.launch {
                     updateAssistantMessage(
                         index = assistantMessageIndex,
-                        text = streamedReply,
-                        isStreaming = true
+                        text = parsedReply.answer.ifBlank {
+                            if (parsedReply.thinking.isNotBlank()) "..." else streamedReply
+                        },
+                        isStreaming = true,
+                        thinkingText = parsedReply.thinking
                     )
                 }
             }
         }
-        val finalReply = when {
+        val finalText = when {
             reply.isNotBlank() -> mergeStreamChunk(
                 currentText = streamedReply,
                 incomingChunk = reply
             )
             streamedReply.isNotBlank() -> streamedReply
-            else -> "No response generated."
+            else -> ""
         }
+        val parsedFinalReply = splitThinkingFromAnswer(finalText)
         updateAssistantMessage(
             index = assistantMessageIndex,
-            text = finalReply,
-            isStreaming = false
+            text = parsedFinalReply.answer.ifBlank { if (parsedFinalReply.thinking.isNotBlank()) "..." else "No response generated." },
+            isStreaming = false,
+            thinkingText = parsedFinalReply.thinking
         )
-        persistMessage(finalReply, isUser = false)
+        persistMessage(
+            text = parsedFinalReply.answer.ifBlank { "No response generated." },
+            isUser = false,
+            thinkingText = parsedFinalReply.thinking
+        )
     }
 }
 
@@ -152,7 +173,8 @@ private suspend fun ChatViewModel.persistMessage(
     isUser: Boolean,
     messageType: String = "text",
     imagePath: String? = null,
-    imageName: String? = null
+    imageName: String? = null,
+    thinkingText: String = ""
 ) {
     val sessionId = ensureSessionExists(firstMessageText = text)
     if (loadedSessionId == null && isModelLoaded) {
@@ -167,6 +189,7 @@ private suspend fun ChatViewModel.persistMessage(
                 messageType = messageType,
                 imagePath = imagePath,
                 imageName = imageName,
+                thinkingText = thinkingText,
                 timestamp = System.currentTimeMillis()
             )
         )
@@ -207,13 +230,15 @@ private fun ChatViewModel.ensureModelLoaded(): Boolean {
 private fun ChatViewModel.updateAssistantMessage(
     index: Int,
     text: String,
-    isStreaming: Boolean
+    isStreaming: Boolean,
+    thinkingText: String = ""
 ) {
     if (index in messages.indices) {
         messages[index] = Message(
             text = text,
             isUser = false,
-            isStreaming = isStreaming
+            isStreaming = isStreaming,
+            thinkingText = thinkingText
         )
     }
 }
@@ -226,6 +251,60 @@ private fun ChatViewModel.mergeStreamChunk(currentText: String, incomingChunk: S
         return incomingChunk
     }
     return currentText + incomingChunk
+}
+
+private data class ThinkingParseResult(
+    val answer: String,
+    val thinking: String
+)
+
+private fun splitThinkingFromAnswer(rawText: String): ThinkingParseResult {
+    val normalized = rawText
+        .replace("\r\n", "\n")
+        .trim()
+
+    val thinkStart = normalized.indexOf("<think>", ignoreCase = true)
+    if (thinkStart == -1) {
+        return ThinkingParseResult(
+            answer = normalized
+                .replace("<endofuser>", "", ignoreCase = true)
+                .replace("</think>", "", ignoreCase = true)
+                .trim(),
+            thinking = ""
+        )
+    }
+
+    val afterStart = thinkStart + "<think>".length
+    val thinkEndTag = normalized.indexOf("</think>", startIndex = afterStart, ignoreCase = true)
+    val endOfUserTag = normalized.indexOf("<endofuser>", startIndex = afterStart, ignoreCase = true)
+    val markerIndex = when {
+        thinkEndTag >= 0 && endOfUserTag >= 0 -> minOf(thinkEndTag, endOfUserTag)
+        thinkEndTag >= 0 -> thinkEndTag
+        endOfUserTag >= 0 -> endOfUserTag
+        else -> -1
+    }
+
+    return if (markerIndex >= 0) {
+        val thinking = normalized.substring(afterStart, markerIndex).trim()
+        val markerLength = when {
+            markerIndex == thinkEndTag -> "</think>".length
+            else -> "<endofuser>".length
+        }
+        val answer = normalized
+            .substring(markerIndex + markerLength)
+            .replace("<endofuser>", "", ignoreCase = true)
+            .replace("</think>", "", ignoreCase = true)
+            .trim()
+        ThinkingParseResult(
+            answer = answer,
+            thinking = thinking
+        )
+    } else {
+        ThinkingParseResult(
+            answer = "",
+            thinking = normalized.substring(afterStart).trim()
+        )
+    }
 }
 
 fun ChatViewModel.setSelectedAttachment(uri: android.net.Uri, displayName: String, mimeType: String?) {

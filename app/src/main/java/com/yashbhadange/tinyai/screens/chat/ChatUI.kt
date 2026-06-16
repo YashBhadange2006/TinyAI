@@ -73,7 +73,8 @@ data class Message(
     val messageType: String = "text",
     val imagePath: String? = null,
     val imageName: String? = null,
-    val isStreaming: Boolean = false
+    val isStreaming: Boolean = false,
+    val thinkingText: String = ""
 )
 
 

@@ -28,6 +28,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -40,6 +42,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -70,6 +73,7 @@ import kotlinx.coroutines.launch
 fun MessageBubble(message: Message) {
     val context = LocalContext.current
     var showImagePreview by remember(message.imagePath) { mutableStateOf(false) }
+    var showThinking by rememberSaveable { mutableStateOf(false) }
 
     val elegantShape = if (message.isUser) {
         RoundedCornerShape(
@@ -108,68 +112,118 @@ fun MessageBubble(message: Message) {
         Column(
             modifier = Modifier
                 .widthIn(max = if (message.isUser) 290.dp else 330.dp)
-                .clip(elegantShape)
-                .background(backgroundColor)
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(bottom = if (!message.isUser && message.thinkingText.isNotBlank()) 6.dp else 0.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            if (message.messageType == "image" && message.imagePath != null) {
-                val bitmap = remember(message.imagePath) {
-                    BitmapFactory.decodeFile(message.imagePath)
+            if (!message.isUser && message.thinkingText.isNotBlank()) {
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showThinking = !showThinking }
+                ) {
+                    Column(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = "Thinking",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Icon(
+                                imageVector = if (showThinking) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                contentDescription = if (showThinking) "Hide thinking" else "Show thinking",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        if (showThinking) {
+                            Text(
+                                text = message.thinkingText,
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    lineHeight = 18.sp
+                                )
+                            )
+                        }
+                    }
                 }
-                bitmap?.let {
-                    Image(
-                        bitmap = it.asImageBitmap(),
-                        contentDescription = message.imageName ?: "Attached image",
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(max = 220.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .clickable { showImagePreview = true },
-                        contentScale = ContentScale.Crop
-                    )
-                }
-                message.imageName?.let { imageName ->
-                    Text(
-                        text = imageName,
-                        style = MaterialTheme.typography.labelSmall.copy(color = contentColor)
-                    )
-                }
-                if (message.text.isNotBlank()) {
-                    Text(
-                        text = message.text,
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            color = contentColor,
-                            fontSize = 15.sp,
-                            lineHeight = 22.sp
+            }
+            Surface(
+                shape = elegantShape,
+                color = backgroundColor
+            ) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    if (message.messageType == "image" && message.imagePath != null) {
+                        val bitmap = remember(message.imagePath) {
+                            BitmapFactory.decodeFile(message.imagePath)
+                        }
+                        bitmap?.let {
+                            Image(
+                                bitmap = it.asImageBitmap(),
+                                contentDescription = message.imageName ?: "Attached image",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(max = 220.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .clickable { showImagePreview = true },
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+                        message.imageName?.let { imageName ->
+                            Text(
+                                text = imageName,
+                                style = MaterialTheme.typography.labelSmall.copy(color = contentColor)
+                            )
+                        }
+                        if (message.text.isNotBlank()) {
+                            Text(
+                                text = message.text,
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    color = contentColor,
+                                    fontSize = 15.sp,
+                                    lineHeight = 22.sp
+                                )
+                            )
+                        }
+                    } else if (message.isUser) {
+                        Text(
+                            text = message.text,
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                color = contentColor,
+                                fontSize = 15.sp,
+                                lineHeight = 22.sp
+                            )
                         )
-                    )
+                    } else if (message.isStreaming) {
+                        Text(
+                            text = if (message.text.isBlank()) {
+                                buildLightweightStreamingMarkdown("...")
+                            } else {
+                                buildLightweightStreamingMarkdown(input = message.text)
+                            },
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                color = contentColor,
+                                fontSize = 15.sp,
+                                lineHeight = 22.sp
+                            )
+                        )
+                    } else {
+                        MarkdownMessage(
+                            markdown = normalizeMarkdownForMarkwon(message.text),
+                            textColor = contentColor.toArgb()
+                        )
+                    }
                 }
-            } else if (message.isUser) {
-                Text(
-                    text = message.text,
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        color = contentColor,
-                        fontSize = 15.sp,
-                        lineHeight = 22.sp
-                    )
-                )
-            } else if (message.isStreaming) {
-                Text(
-                    text = buildLightweightStreamingMarkdown(
-                        input = message.text
-                    ),
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        color = contentColor,
-                        fontSize = 15.sp,
-                        lineHeight = 22.sp
-                    )
-                )
-            } else {
-                MarkdownMessage(
-                    markdown = normalizeMarkdownForMarkwon(message.text),
-                    textColor = contentColor.toArgb()
-                )
             }
         }
     }

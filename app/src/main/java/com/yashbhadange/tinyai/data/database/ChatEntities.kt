@@ -34,5 +34,6 @@ data class ChatMessageEntity(
     @ColumnInfo(name = "message_type") val messageType: String = "text",
     @ColumnInfo(name = "image_path") val imagePath: String? = null,
     @ColumnInfo(name = "image_name") val imageName: String? = null,
+    @ColumnInfo(name = "thinking_text") val thinkingText: String = "",
     @ColumnInfo(name = "timestamp") val timestamp: Long
 )

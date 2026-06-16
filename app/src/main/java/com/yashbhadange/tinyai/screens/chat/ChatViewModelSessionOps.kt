@@ -78,7 +78,8 @@ fun ChatViewModel.loadChatSession(sessionId: Long) {
                         isUser = it.isUser,
                         messageType = it.messageType,
                         imagePath = it.imagePath,
-                        imageName = it.imageName
+                        imageName = it.imageName,
+                        thinkingText = it.thinkingText
                     )
                 }
             )
@@ -174,7 +175,8 @@ private fun ChatViewModel.restoreLatestSessionInternal() {
                         isUser = it.isUser,
                         messageType = it.messageType,
                         imagePath = it.imagePath,
-                        imageName = it.imageName
+                        imageName = it.imageName,
+                        thinkingText = it.thinkingText
                     )
                 }
             )
