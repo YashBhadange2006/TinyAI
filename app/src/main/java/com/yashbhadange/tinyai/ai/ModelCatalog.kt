@@ -17,7 +17,7 @@ object ModelCatalog {
         sizeLabel = "1.83GB download",
         downloadUrl = "https://huggingface.co/litert-community/DeepSeek-R1-Distill-Qwen-1.5B/resolve/main/DeepSeek-R1-Distill-Qwen-1.5B_multi-prefill-seq_q8_ekv4096.litertlm?download=true",
         fileName = "DeepSeek-R1-Distill-Qwen-1.5B_multi-prefill-seq_q8_ekv4096.litertlm",
-        description = "Downloads the hosted LitertLM .litertlm model on demand, then loads it locally on device."
+        description = "Advanced reasoning model optimized for math, logic, and step-by-step problem-solving."
     )
 
     val qwen25_1_5B_Instruct = ModelSpec(
@@ -26,7 +26,7 @@ object ModelCatalog {
         sizeLabel = "1.6GB download",
         downloadUrl = "https://huggingface.co/litert-community/Qwen2.5-1.5B-Instruct/resolve/main/Qwen2.5-1.5B-Instruct_multi-prefill-seq_q8_ekv4096.litertlm?download=true",
         fileName = "Qwen2.5-1.5B-Instruct_multi-prefill-seq_q8_ekv4096.litertlm",
-        description = "Downloads the hosted LitertLM .litertlm model on demand, then loads it locally on device."
+        description = "Balanced conversational model optimized for general tasks, multilingual chat, and everyday assistant queries."
     )
 
 
@@ -36,7 +36,7 @@ object ModelCatalog {
         sizeLabel = "2.58GB download",
         downloadUrl = "https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it.litertlm?download=true",
         fileName = "gemma-4-E2B-it.litertlm",
-        description = "Downloads the hosted LitertLM .litertlm model on demand, then loads it locally on device."
+        description = "High-performance model designed for efficient, instruction-following tasks and creative content generation."
     )
 
     val gemma3_1b = ModelSpec(
@@ -45,7 +45,7 @@ object ModelCatalog {
         sizeLabel = "584MB download",
         downloadUrl = "https://huggingface.co/Bioniok/LocalModel/resolve/main/Gemma3-1B-IT_multi-prefill-seq_q4_ekv4096.litertlm?download=true",
         fileName = "Gemma3-1B-IT_multi-prefill-seq_q4_ekv4096.litertlm",
-        description = "Downloads the hosted LitertLM .litertlm model on demand, then loads it locally on device."
+        description = "Ultra-lightweight, fast assistant optimized for rapid conversational responses and low-memory devices."
     )
 
     val qwen3_0_6b = ModelSpec(
@@ -54,7 +54,7 @@ object ModelCatalog {
         sizeLabel = "614MB download",
         downloadUrl = "https://huggingface.co/litert-community/Qwen3-0.6B/resolve/main/Qwen3-0.6B.litertlm?download=true",
         fileName = "Qwen3-0.6B.litertlm",
-        description = "Downloads the hosted LitertLM .litertlm model on demand, then loads it locally on device."
+        description = "Extremely compact and highly efficient model built for basic text generation and instant responses."
     )
 
     val supportedModels = listOf(gemma4_2b,deepseek_r1_distill_qwen_1_5B,gemma3_1b,qwen25_1_5B_Instruct,qwen3_0_6b)

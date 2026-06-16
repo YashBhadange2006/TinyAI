@@ -130,6 +130,7 @@ private fun RemoteModelVersionsContent(
                     onSystemPromptChange = { prompt -> chatViewModel.updateSystemPrompt(model, prompt) },
                     isLoading = chatViewModel.isLoadingModel(model),
                     isLoaded = chatViewModel.isLoadedModel(model),
+                    showSize = false,
                     isGpuEnabled =  chatViewModel.isGpuEnabledForModel(model.id),
                     onGpuToggle = { enabled -> chatViewModel.toggleGpu(model.id,enabled) }
                 )

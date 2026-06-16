@@ -247,6 +247,7 @@ fun ModelItemRow(
     onGpuToggle: (Boolean) -> Unit,
     isLoading: Boolean,
     isLoaded: Boolean,
+    showSize: Boolean = true,
 ) {
 
     var isExpanded by remember { mutableStateOf(false)}
@@ -359,24 +360,26 @@ fun ModelItemRow(
                         lineHeight = 18.sp
                     )
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Storage,
-                            contentDescription = "Model size",
-                            tint = MaterialTheme.colorScheme.outline,
-                            modifier = Modifier
-                                .size(17.dp)
-                                .padding(end = 5.dp)
-                        )
-                        Text(
-                            text = "Size: ${model.sizeLabel}",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                            modifier = Modifier.padding(top = 2.dp)
-                        )
+                    if (!status.isDownloading && showSize) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Storage,
+                                contentDescription = "Model size",
+                                tint = MaterialTheme.colorScheme.outline,
+                                modifier = Modifier
+                                    .size(17.dp)
+                                    .padding(end = 5.dp)
+                            )
+                            Text(
+                                text = "Size: ${model.sizeLabel}",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                modifier = Modifier.padding(top = 2.dp)
+                            )
+                        }
                     }
                 }
             }
