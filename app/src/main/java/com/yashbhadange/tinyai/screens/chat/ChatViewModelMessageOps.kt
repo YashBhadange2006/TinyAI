@@ -5,6 +5,7 @@ import com.yashbhadange.tinyai.data.database.ChatMessageEntity
 import com.yashbhadange.tinyai.data.database.ChatSession
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
 fun ChatViewModel.sendMessage(prompt: String) {
@@ -44,7 +45,9 @@ fun ChatViewModel.sendMessage(prompt: String) {
                 imagePath = savedImagePath,
                 imageName = attachmentName
             )
-            isTyping = true
+            val assistantMessageIndex = messages.size
+            messages.add(Message(text = "...", isUser = false, isStreaming = true))
+            var streamedReply = ""
             val reply = withContext(Dispatchers.IO) {
                 when {
                     attachmentUri == null -> "No image was selected."
@@ -52,17 +55,43 @@ fun ChatViewModel.sendMessage(prompt: String) {
                         "Only image attachments are supported right now."
                     }
                     else -> {
-                        llm.generateWithImage(effectivePrompt, attachmentUri)
+                        llm.generateWithImageStream(effectivePrompt, attachmentUri) { partialReply ->
+                            if (partialReply.isEmpty()) {
+                                return@generateWithImageStream
+                            }
+                            streamedReply = mergeStreamChunk(
+                                currentText = streamedReply,
+                                incomingChunk = partialReply
+                            )
+                            val parsedReply = splitThinkingFromAnswer(streamedReply)
+                            viewModelScope.launch {
+                                updateAssistantMessage(
+                                    index = assistantMessageIndex,
+                                    text = parsedReply.answer.ifBlank {
+                                        if (parsedReply.thinking.isNotBlank()) "..." else streamedReply
+                                    },
+                                    isStreaming = true,
+                                    thinkingText = parsedReply.thinking
+                                )
+                            }
+                        }
                     }
                 }
             }
-            val parsedReply = splitThinkingFromAnswer(reply)
-            messages.add(
-                Message(
-                    text = parsedReply.answer.ifBlank { "No response generated." },
-                    isUser = false,
-                    thinkingText = parsedReply.thinking
+            val finalText = when {
+                reply.isNotBlank() -> mergeStreamChunk(
+                    currentText = streamedReply,
+                    incomingChunk = reply
                 )
+                streamedReply.isNotBlank() -> streamedReply
+                else -> ""
+            }
+            val parsedReply = splitThinkingFromAnswer(finalText)
+            updateAssistantMessage(
+                index = assistantMessageIndex,
+                text = parsedReply.answer.ifBlank { if (parsedReply.thinking.isNotBlank()) "..." else "No response generated." },
+                isStreaming = false,
+                thinkingText = parsedReply.thinking
             )
             persistMessage(
                 text = parsedReply.answer.ifBlank { "No response generated." },
@@ -70,7 +99,6 @@ fun ChatViewModel.sendMessage(prompt: String) {
                 thinkingText = parsedReply.thinking
             )
             clearSelectedAttachment()
-            isTyping = false
         }
         return
     }

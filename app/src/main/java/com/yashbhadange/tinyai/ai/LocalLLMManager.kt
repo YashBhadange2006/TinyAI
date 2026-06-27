@@ -139,7 +139,11 @@ class LocalLLMManager(
         }
     }
 
-    fun generateWithImage(prompt: String, imageUri: Uri): String {
+    suspend fun generateWithImageStream(
+        prompt: String,
+        imageUri: Uri,
+        onPartial: (String) -> Unit
+    ): String {
         if(!supportsVision){
             return "Error: The currently loaded model only supports text generation."
         }
@@ -160,7 +164,14 @@ class LocalLLMManager(
                     LlmInferenceSession.createFromOptions(engine, sessionOptions).use { session ->
                         session.addImage(image)
                         session.addQueryChunk(prompt)
-                        session.generateResponse()
+                        val future = session.generateResponseAsync(
+                            ProgressListener<String> { partialResponse, _ ->
+                                onPartial(partialResponse)
+                            }
+                        )
+                        withContext(Dispatchers.IO) {
+                            future.get()
+                        }
                     }
                 }
 
@@ -172,7 +183,13 @@ class LocalLLMManager(
                         Content.ImageFile(imagePath),
                         Content.Text(prompt)
                     )
-                    conversation.sendMessage(contents).toString()
+                    var finalResponse = ""
+                    conversation.sendMessageAsync(contents).collect { partialMessage ->
+                        val partialText = partialMessage.toString()
+                        finalResponse = partialText
+                        onPartial(partialText)
+                    }
+                    finalResponse
                 }
 
                 null -> "Model is not loaded yet. Download and load a model first."
