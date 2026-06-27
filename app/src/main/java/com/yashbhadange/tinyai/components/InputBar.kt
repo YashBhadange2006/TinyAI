@@ -14,7 +14,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import android.widget.Toast
 import com.yashbhadange.tinyai.screens.chat.ChatViewModel
 
 @Composable
@@ -26,6 +28,7 @@ fun ChatInput(
     onSend: (String) -> Unit
 ) {
     var text by remember { mutableStateOf("") }
+    val context = LocalContext.current
 
     Card(
         modifier = Modifier
@@ -91,8 +94,17 @@ fun ChatInput(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(
-                    onClick = onAttachClick,
-                    enabled = chatViewModel.llm.supportsVision
+                    onClick = {
+                        if (chatViewModel.llm.supportsVision) {
+                            onAttachClick()
+                        } else {
+                            Toast.makeText(
+                                context,
+                                "Model doesn't support image input",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
                 ) {
                     Icon(
                         imageVector = Icons.Default.Add,
