@@ -1,8 +1,10 @@
 package com.yashbhadange.tinyai.data.api
 
+import androidx.annotation.Keep
 import com.yashbhadange.tinyai.ai.ModelSpec
 import com.google.gson.annotations.SerializedName
 
+@Keep
 data class HFModel(
     val id: String,
     val downloads: Int? = null,
@@ -14,6 +16,7 @@ data class HFModel(
     }
 }
 
+@Keep
 data class HFSibling(
     @SerializedName("rfilename")
     val fileName: String,
@@ -24,6 +27,7 @@ data class HFSibling(
     }
 }
 
+@Keep
 data class HFRemoteModelGroup(
     val id: String,
     val downloads: Int,
