@@ -39,6 +39,9 @@
 # Serialization Protection (Since you use kotlinx.serialization)
 -keepattributes *Annotation*,Signature,InnerClasses,EnclosingMethod
 
+# Keep Retrofit + Gson API response models intact in release builds
+-keep class com.yashbhadange.tinyai.data.api.** { *; }
+
 # Please add these rules to your existing keep rules in order to suppress warnings.
 # This is generated automatically by the Android Gradle plugin.
 -dontwarn com.google.auto.value.extension.memoized.Memoized
