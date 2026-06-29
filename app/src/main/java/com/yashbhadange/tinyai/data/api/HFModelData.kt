@@ -6,10 +6,10 @@ import com.google.gson.annotations.SerializedName
 
 @Keep
 data class HFModel(
-    val id: String,
-    val downloads: Int? = null,
-    val likes: Int? = null,
-    val siblings: List<HFSibling>? = null
+    @SerializedName("id") val id: String,
+    @SerializedName("downloads") val downloads: Int? = null,
+    @SerializedName("likes") val likes: Int? = null,
+    @SerializedName("siblings") val siblings: List<HFSibling>? = null
 ) {
     fun getLitertLMFiles(): List<HFSibling> {
         return siblings?.filter { it.fileName.endsWith(".litertlm", ignoreCase = true) } ?: emptyList()
@@ -20,7 +20,7 @@ data class HFModel(
 data class HFSibling(
     @SerializedName("rfilename")
     val fileName: String,
-    val size: Long? = null
+    @SerializedName("size") val size: Long? = null
 ) {
     fun downloadUrl(modelId: String): String {
         return "https://huggingface.co/$modelId/resolve/main/$fileName?download=true"
@@ -29,10 +29,10 @@ data class HFSibling(
 
 @Keep
 data class HFRemoteModelGroup(
-    val id: String,
-    val downloads: Int,
-    val likes: Int,
-    val versionFiles: List<HFSibling>
+    @SerializedName("id") val id: String,
+    @SerializedName("downloads") val downloads: Int,
+    @SerializedName("likes") val likes: Int,
+    @SerializedName("versionFiles") val versionFiles: List<HFSibling>
 ) {
     val displayName: String
         get() = id.substringAfter("/")

@@ -37,10 +37,28 @@
 -dontwarn androidx.room.paging.**
 
 # Serialization Protection (Since you use kotlinx.serialization)
--keepattributes *Annotation*,Signature,InnerClasses,EnclosingMethod
-
+-keepattributes Signature, InnerClasses, EnclosingMethod, RuntimeVisibleAnnotations, RuntimeVisibleParameterAnnotations
 # Keep Retrofit + Gson API response models intact in release builds
 -keep class com.yashbhadange.tinyai.data.api.** { *; }
+
+# Retrofit requirements
+-keep class retrofit2.** { *; }
+-dontwarn retrofit2.**
+-keepclasseswithmembers interface * {
+    @retrofit2.http.* <methods>;
+}
+
+# 3. Kotlin Coroutines (Fixes the ClassCastException)
+-keep class kotlin.coroutines.Continuation
+-keepnames class kotlinx.coroutines.internal.MainDispatcherFactory {}
+-keepnames class kotlinx.coroutines.CoroutineExceptionHandler {}
+
+# 4. Gson & Data Models
+-keep class com.google.gson.reflect.TypeToken
+-keep class * extends com.google.gson.TypeAdapter
+-keepclassmembers class * {
+    @com.google.gson.annotations.SerializedName <fields>;
+}
 
 # Please add these rules to your existing keep rules in order to suppress warnings.
 # This is generated automatically by the Android Gradle plugin.
