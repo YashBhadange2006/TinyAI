@@ -184,14 +184,14 @@ fun ChatViewModel.loadRemoteModelCatalog() {
         remoteModelGroups = withContext(Dispatchers.IO) {
             try {
                 remoteModelsRepository.fetchRemoteLiteRtModels()
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                android.util.Log.e("HF_DEBUG", "Failed to fetch models", e)
                 emptyList()
             }
         }
         restoreLoadedSessionModelIfNeeded()
     }
 }
-
 internal fun ChatViewModel.allKnownModels(): List<ModelSpec> {
     return ModelCatalog.supportedModels + remoteModelGroups.flatMap { it.toVersionModelSpecs() }
 }
