@@ -14,23 +14,13 @@ android {
         applicationId = "com.yashbhadange.tinyai"
         minSdk = 24
         targetSdk = 36
-        versionCode = 3
+        versionCode = 5
         versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         
     }
 
-    buildTypes {
-        debug{
-            isMinifyEnabled = true
-            isShrinkResources = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
-        }
-    }
     buildTypes {
         release {
             isMinifyEnabled = true
