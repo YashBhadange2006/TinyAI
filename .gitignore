@@ -16,3 +16,10 @@ local.properties
 *.jks
 *.keystore
 keystore.properties
+
+.gradle-local/
+.gradle-user/
+.kotlin/
+app/release/
+*.log
+llama.cpp/

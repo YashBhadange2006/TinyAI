@@ -21,4 +21,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "TinyAI"
 include(":app")
+include(":llama")
  

@@ -3,6 +3,7 @@ package com.yashbhadange.tinyai
 import android.app.Activity
 import android.content.Context
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -46,6 +47,8 @@ class MainActivity : ComponentActivity() {
     private var updatePromptInProgress = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
+
+        Log.d("TinyAI-JNI",stringFromJNI())
         super.onCreate(savedInstanceState)
         appUpdateManager = AppUpdateManagerFactory.create(this)
         val appPreferences = getSharedPreferences(APP_PREFERENCES, Context.MODE_PRIVATE)
@@ -115,6 +118,14 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    companion object{
+        init{
+            System.loadLibrary("tinyai_native")
+        }
+    }
+
+    private external fun stringFromJNI(): String
 }
 
 @Composable

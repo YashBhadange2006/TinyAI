@@ -39,6 +39,13 @@ android {
         
     }
 
+    externalNativeBuild{
+        cmake{
+            path = file("CMakeLists.txt")
+            version = "3.22.1"
+        }
+    }
+
     signingConfigs {
         if (hasReleaseSigning) {
             create("release") {
@@ -113,6 +120,8 @@ dependencies {
     implementation("com.google.android.play:app-update-ktx:2.1.0")
     implementation(libs.androidx.fragment.ktx)
 
+    // make app depend on llama library
+    implementation(project(":llama"))
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.navigation3.runtime)
