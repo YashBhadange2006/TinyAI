@@ -41,19 +41,14 @@ static common_sampler                   * g_sampler;
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_arm_aichat_internal_InferenceEngineImpl_init(JNIEnv *env, jobject /*unused*/, jstring nativeLibDir) {
+Java_com_arm_aichat_internal_InferenceEngineImpl_init(JNIEnv * /*env*/, jobject /*unused*/, jstring /*nativeLibDir*/) {
     // Set llama log handler to Android
     llama_log_set(aichat_android_log_callback, nullptr);
 
-    // Loading all CPU backend variants
-    const auto *path_to_backend = env->GetStringUTFChars(nativeLibDir, 0);
-    LOGi("Loading backends from %s", path_to_backend);
-    ggml_backend_load_all_from_path(path_to_backend);
-    env->ReleaseStringUTFChars(nativeLibDir, path_to_backend);
-
-    // Initialize backends
+    // The CPU backend is linked with the library, so register it directly instead of
+    // relying on Android to discover dynamically loaded backend plugins.
     llama_backend_init();
-    LOGi("Backend initiated; Log handler set.");
+    LOGi("Statically linked CPU backend initiated; Log handler set.");
 }
 
 extern "C"
@@ -65,8 +60,14 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_load(JNIEnv *env, jobject, jstr
     LOGd("%s: Loading model from: \n%s\n", __func__, model_path);
 
     auto *model = llama_model_load_from_file(model_path, model_params);
+    if (!model) {
+        LOGw("%s: mmap load failed; retrying without mmap", __func__);
+        model_params.load_mode = LLAMA_LOAD_MODE_NONE;
+        model = llama_model_load_from_file(model_path, model_params);
+    }
     env->ReleaseStringUTFChars(jmodel_path, model_path);
     if (!model) {
+        LOGe("%s: unable to load GGUF model", __func__);
         return 1;
     }
     g_model = model;

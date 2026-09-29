@@ -1,5 +1,6 @@
 package com.arm.aichat
 
+import android.content.Context
 import android.content.pm.ApplicationInfo
 import com.arm.aichat.internal.InferenceEngineImpl
 
@@ -10,5 +11,5 @@ object AiChat {
     /**
      * Get the inference engine single instance.
      */
-    fun getInferenceEngine(context: ApplicationInfo?) = InferenceEngineImpl.getInstance(context)
+    fun getInferenceEngine(context: Context) = InferenceEngineImpl.getInstance(context)
 }

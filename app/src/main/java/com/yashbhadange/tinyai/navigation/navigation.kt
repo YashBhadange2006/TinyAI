@@ -7,6 +7,7 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
 import com.yashbhadange.tinyai.ai.ModelCatalog
+import com.yashbhadange.tinyai.data.api.ModelFormat
 import com.yashbhadange.tinyai.screens.chat.ChatUI
 import com.yashbhadange.tinyai.screens.chat.ChatViewModel
 import com.yashbhadange.tinyai.screens.chat.*
@@ -35,6 +36,7 @@ sealed interface PocketAIScreen : NavKey {
     data class RemoteModelVersions(
         val repoId: String,
         val title: String,
+        val format: ModelFormat,
     ) : PocketAIScreen
 }
 
@@ -90,7 +92,8 @@ fun PocketAINavigation(
                         backStack.add(
                             PocketAIScreen.RemoteModelVersions(
                                 repoId = group.id,
-                                title = group.displayName
+                                title = group.displayName,
+                                format = group.format
                             )
                         )
                     },
@@ -134,6 +137,7 @@ fun PocketAINavigation(
                 RemoteModelVersionsScreen(
                     chatViewModel = chatViewModel,
                     repoId = key.repoId,
+                    format = key.format,
                     repoTitle = key.title,
                     onBack = {
                         if (backStack.lastIndex > 0) {

@@ -9,6 +9,7 @@ import com.yashbhadange.tinyai.ai.ModelCatalog
 import com.yashbhadange.tinyai.ai.ModelDownloadStatus
 import com.yashbhadange.tinyai.ai.ModelSpec
 import com.yashbhadange.tinyai.data.api.HFRemoteModelGroup
+import com.yashbhadange.tinyai.data.api.ModelFormat
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -134,8 +135,8 @@ fun ChatViewModel.getModelStatus(model: ModelSpec): ModelDownloadStatus {
     }
 }
 
-fun ChatViewModel.getRemoteModelGroup(repoId: String): HFRemoteModelGroup? {
-    return remoteModelGroups.firstOrNull { it.id == repoId }
+fun ChatViewModel.getRemoteModelGroup(repoId: String, format: ModelFormat): HFRemoteModelGroup? {
+    return remoteModelGroups.firstOrNull { it.id == repoId && it.format == format }
 }
 
 fun ChatViewModel.isLoadingModel(model: ModelSpec): Boolean = loadingModelId == model.id && isModelLoading
@@ -214,7 +215,7 @@ fun ChatViewModel.importCustomModelFile(context: Context, uri: Uri) {
 
         refreshCustomModelsFromStorage()
         messages.add(
-            Message("${savedFile.name.removePrefix("custom_").substringAfter('_', savedFile.name).removeSuffix(".litertlm").removeSuffix(".task")} imported and ready to load.", false, includeInContext = false)
+            Message("${savedFile.name.removePrefix("custom_").substringAfter('_', savedFile.name).removeSuffix(".litertlm").removeSuffix(".task").removeSuffix(".gguf")} imported and ready to load.", false, includeInContext = false)
         )
     }
 }
@@ -223,7 +224,9 @@ fun ChatViewModel.loadRemoteModelCatalog() {
     viewModelScope.launch {
         remoteModelGroups = withContext(Dispatchers.IO) {
             try {
-                remoteModelsRepository.fetchRemoteLiteRtModels()
+                remoteModelsRepository.fetchRemoteLiteRtModels() +
+                    remoteModelsRepository.fetchRemoteTaskModels() +
+                    remoteModelsRepository.fetchRemoteGgufModels()
             } catch (e: Exception) {
                 android.util.Log.e("HF_DEBUG", "Failed to fetch models", e)
                 emptyList()
@@ -390,7 +393,9 @@ internal fun ChatViewModel.refreshCustomModelsFromStorage() {
         ?.filter { file ->
             file.isFile &&
                 file.name.startsWith("custom_", ignoreCase = true) &&
-                (file.name.endsWith(".litertlm", ignoreCase = true) || file.name.endsWith(".task", ignoreCase = true))
+                (file.name.endsWith(".litertlm", ignoreCase = true) ||
+                    file.name.endsWith(".task", ignoreCase = true) ||
+                    file.name.endsWith(".gguf", ignoreCase = true))
         }
         ?.sortedByDescending { it.lastModified() }
         ?: emptyList()
@@ -401,6 +406,7 @@ internal fun ChatViewModel.refreshCustomModelsFromStorage() {
             .substringAfter('_', file.name)
             .removeSuffix(".litertlm")
             .removeSuffix(".task")
+            .removeSuffix(".gguf")
 
         ModelSpec(
             id = "custom_${file.nameWithoutExtension}",

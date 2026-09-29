@@ -30,20 +30,13 @@ android {
 
     defaultConfig {
         applicationId = "com.yashbhadange.tinyai"
-        minSdk = 24
+        minSdk = 33
         targetSdk = 36
         versionCode = 10
         versionName = "1.4.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         
-    }
-
-    externalNativeBuild{
-        cmake{
-            path = file("CMakeLists.txt")
-            version = "3.22.1"
-        }
     }
 
     signingConfigs {

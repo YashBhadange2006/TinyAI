@@ -5,14 +5,18 @@ import com.arm.aichat.AiChat
 import com.arm.aichat.InferenceEngine
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 
 class LlamaCppEngine(context : Context){
-    private val engine = AiChat.getInferenceEngine(context.applicationInfo)
+    private val engine = AiChat.getInferenceEngine(context)
 
     val state : StateFlow<InferenceEngine.State>
         get() = engine.state
 
     suspend fun loadModel(path: String) {
+        state.first {
+            it is InferenceEngine.State.Initialized || it is InferenceEngine.State.Error
+        }
         engine.loadModel(path)
     }
 

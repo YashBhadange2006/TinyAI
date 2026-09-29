@@ -30,8 +30,8 @@ android {
                 arguments += "-DLLAMA_OPENSSL=OFF"
 
                 arguments += "-DGGML_NATIVE=OFF"
-                arguments += "-DGGML_BACKEND_DL=ON"
-                arguments += "-DGGML_CPU_ALL_VARIANTS=ON"
+                arguments += "-DGGML_BACKEND_DL=OFF"
+                arguments += "-DGGML_CPU_ALL_VARIANTS=OFF"
                 arguments += "-DGGML_LLAMAFILE=OFF"
             }
         }

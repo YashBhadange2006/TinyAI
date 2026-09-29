@@ -105,13 +105,14 @@ fun ModelSettingsScreen(
             val safeUri = uri ?: return@rememberLauncherForActivityResult
             val fileName = getFileName(context, safeUri)
             val isValid = fileName?.endsWith(".litertlm",ignoreCase = true) == true ||
-                    fileName?.endsWith(".task",ignoreCase = true) == true
+                    fileName?.endsWith(".task",ignoreCase = true) == true ||
+                    fileName?.endsWith(".gguf",ignoreCase = true) == true
 
             if(isValid){
                 chatViewModel.importCustomModelFile(context,safeUri)
                 Toast.makeText(context,"Model added, check My Models",Toast.LENGTH_SHORT).show()
             } else {
-                Toast.makeText(context,"App only supports .litertlm or .task file", Toast.LENGTH_LONG).show()
+                Toast.makeText(context,"App only supports .litertlm, .task, or .gguf files", Toast.LENGTH_LONG).show()
             }
         }
     )
@@ -465,10 +466,10 @@ fun ModelSettingsContent(
                     )
                 }
             } else {
-                items(filteredRemoteGroups, key = { it.id }) { group ->
+                items(filteredRemoteGroups, key = { "${it.id}_${it.format}" }) { group ->
                     RemoteModelSummaryCard(
                         title = group.displayName,
-                        subtitle = "${group.versionFiles.size} downloadable .litertlm file${if (group.versionFiles.size == 1) "" else "s"}",
+                        subtitle = "${group.versionFiles.size} downloadable ${group.format.extension} file${if (group.versionFiles.size == 1) "" else "s"}",
                         versionLabel = "Open versions",
                         onClick = { onOpenRemoteModelVersions(group) }
                     )

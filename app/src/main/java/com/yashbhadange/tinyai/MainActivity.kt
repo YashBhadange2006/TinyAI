@@ -48,7 +48,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
 
-        Log.d("TinyAI-JNI",stringFromJNI())
         super.onCreate(savedInstanceState)
         appUpdateManager = AppUpdateManagerFactory.create(this)
         val appPreferences = getSharedPreferences(APP_PREFERENCES, Context.MODE_PRIVATE)
@@ -118,14 +117,6 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-
-    companion object{
-        init{
-            System.loadLibrary("tinyai_native")
-        }
-    }
-
-    private external fun stringFromJNI(): String
 }
 
 @Composable
