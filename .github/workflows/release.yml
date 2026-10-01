@@ -16,6 +16,13 @@ jobs:
       - name: Checkout repository code
         uses: actions/checkout@v4
 
+      - name: Fetch pinned llama.cpp source
+        run: |
+          git init llama.cpp
+          git -C llama.cpp remote add origin https://github.com/ggml-org/llama.cpp.git
+          git -C llama.cpp fetch --depth 1 origin c550d2f60bde72df19fcef1fef627895095b8ba8
+          git -C llama.cpp checkout --detach FETCH_HEAD
+
       - name: Set up Java JDK 17
         uses: actions/setup-java@v4
         with:
