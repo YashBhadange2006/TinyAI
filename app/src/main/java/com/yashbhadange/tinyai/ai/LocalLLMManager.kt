@@ -340,7 +340,7 @@ class LocalLLMManager(
     private suspend fun loadGgufModel(modelPath: String, systemPrompt: String, backend: ExecutionBackend) {
         val engine = LlamaCppEngine(context)
         val nGpuLayers = if (backend == ExecutionBackend.GPU) 99 else 0 // means if GPU load all 99 layers else 0
-        engine.loadModel(modelPath)
+        engine.loadModel(modelPath, nGpuLayers)
         systemPrompt.trim().takeIf { it.isNotEmpty() }?.let { prompt ->
             engine.setSystemPrompt(prompt)
         }
