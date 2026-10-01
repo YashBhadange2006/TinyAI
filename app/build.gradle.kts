@@ -30,7 +30,7 @@ android {
 
     defaultConfig {
         applicationId = "com.yashbhadange.tinyai"
-        minSdk = 24
+        minSdk = 33
         targetSdk = 36
         versionCode = 10
         versionName = "1.4.1"
@@ -113,6 +113,8 @@ dependencies {
     implementation("com.google.android.play:app-update-ktx:2.1.0")
     implementation(libs.androidx.fragment.ktx)
 
+    // make app depend on llama library
+    implementation(project(":llama"))
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.navigation3.runtime)

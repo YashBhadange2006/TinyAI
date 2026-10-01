@@ -14,6 +14,12 @@ data class HFModel(
     fun getLitertLMFiles(): List<HFSibling> {
         return siblings?.filter { it.fileName.endsWith(".litertlm", ignoreCase = true) } ?: emptyList()
     }
+    fun getTaskFiles(): List<HFSibling> {
+        return siblings?.filter { it.fileName.endsWith(".task", ignoreCase = true) } ?: emptyList()
+    }
+    fun getGgufFiles(): List<HFSibling> {
+        return siblings?.filter { it.fileName.endsWith(".gguf", ignoreCase = true) } ?: emptyList()
+    }
 }
 
 @Keep
@@ -27,12 +33,19 @@ data class HFSibling(
     }
 }
 
+enum class ModelFormat(val extension: String)
+{
+    LITERTLM(".litertlm"),
+    TASK(".task"),
+    GGUF(".gguf")
+}
 @Keep
 data class HFRemoteModelGroup(
     @SerializedName("id") val id: String,
     @SerializedName("downloads") val downloads: Int,
     @SerializedName("likes") val likes: Int,
-    @SerializedName("versionFiles") val versionFiles: List<HFSibling>
+    @SerializedName("versionFiles") val versionFiles: List<HFSibling>,
+    val format: ModelFormat
 ) {
     val displayName: String
         get() = id.substringAfter("/")
@@ -41,7 +54,7 @@ data class HFRemoteModelGroup(
         return versionFiles.map { file ->
             ModelSpec(
                 id = remoteVersionId(file.fileName),
-                displayName = "${displayName} - ${file.fileName.removeSuffix(".litertlm")}",
+                displayName = "${displayName} - ${file.fileName.removeSuffix(format.extension)}",
                 sizeLabel = file.size.toReadableSize(),
                 downloadUrl = file.downloadUrl(id),
                 fileName = file.fileName,
@@ -55,8 +68,12 @@ data class HFRemoteModelGroup(
     }
 }
 
-fun HFModel.toRemoteGroup(): HFRemoteModelGroup? {
-    val files = getLitertLMFiles()
+fun HFModel.toRemoteGroup(format: ModelFormat): HFRemoteModelGroup? {
+    val files = when (format) {
+        ModelFormat.LITERTLM -> getLitertLMFiles()
+        ModelFormat.TASK -> getTaskFiles()
+        ModelFormat.GGUF -> getGgufFiles()
+    }
     if (files.isEmpty()) {
         return null
     }
@@ -65,7 +82,8 @@ fun HFModel.toRemoteGroup(): HFRemoteModelGroup? {
         id = id,
         downloads = downloads ?: 0,
         likes = likes ?: 0,
-        versionFiles = files
+        versionFiles = files,
+        format = format
     )
 }
 

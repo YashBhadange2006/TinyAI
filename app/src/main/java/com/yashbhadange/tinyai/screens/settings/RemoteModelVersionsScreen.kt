@@ -23,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.yashbhadange.tinyai.components.ModelItemRow
 import com.yashbhadange.tinyai.data.api.HFRemoteModelGroup
+import com.yashbhadange.tinyai.data.api.ModelFormat
 import com.yashbhadange.tinyai.screens.chat.deleteSelectedModel
 import com.yashbhadange.tinyai.screens.chat.downloadSelectedModel
 import com.yashbhadange.tinyai.screens.chat.getModelStatus
@@ -41,10 +42,11 @@ import com.yashbhadange.tinyai.screens.chat.unloadSelectedModel
 fun RemoteModelVersionsScreen(
     chatViewModel: ChatViewModel,
     repoId: String,
+    format: ModelFormat,
     repoTitle: String,
     onBack: () -> Unit
 ) {
-    val repo = chatViewModel.getRemoteModelGroup(repoId)
+    val repo = chatViewModel.getRemoteModelGroup(repoId, format)
 
     Scaffold(
         topBar = {
@@ -104,7 +106,7 @@ private fun RemoteModelVersionsContent(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Download links for the available .litertlm versions in this repository.",
+                    text = "Download links for the available ${repo.format.extension} versions in this repository.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -114,7 +116,7 @@ private fun RemoteModelVersionsContent(
         if (versionModels.isEmpty()) {
             item {
                 Text(
-                    text = "No .litertlm versions were found for this model.",
+                    text = "No ${repo.format.extension} versions were found for this model.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

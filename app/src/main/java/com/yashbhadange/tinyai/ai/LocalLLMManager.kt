@@ -2,6 +2,7 @@ package com.yashbhadange.tinyai.ai
 
 import android.content.Context
 import android.net.Uri
+import com.yashbhadange.tinyai.ai.inference.LlamaCppEngine
 import com.google.ai.edge.litertlm.Backend
 import com.google.ai.edge.litertlm.Content
 import com.google.ai.edge.litertlm.ConversationConfig
@@ -17,6 +18,8 @@ import com.google.mediapipe.tasks.genai.llminference.LlmInferenceSession
 import com.google.mediapipe.tasks.genai.llminference.ProgressListener
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.io.File
 
@@ -34,7 +37,8 @@ class LocalLLMManager(
 
     private enum class ModelRuntime {
         MEDIAPIPE,
-        LITERTLM
+        LITERTLM,
+        GGUF
     }
 
     // variable editable only by this file
@@ -44,6 +48,7 @@ class LocalLLMManager(
     private var llmInference: LlmInference? = null
     private var liteRtEngine: Engine? = null
     private var liteRtConversation: Conversation? = null
+    private var llamaEngine: LlamaCppEngine? = null
     private var activeMediaPipeFuture: com.google.common.util.concurrent.ListenableFuture<String>? = null
     private var loadedModelPath: String? = null
     private var loadedRuntime: ModelRuntime? = null
@@ -61,19 +66,26 @@ class LocalLLMManager(
                         liteRtEngine != null &&
                         liteRtConversation != null
             }
+            ModelRuntime.GGUF -> {
+                loadedModelPath == modelPath && llamaEngine != null && loadedBackend == backend
+            }
             null -> false
         }
     }
 
-    fun loadModel(modelPath: String, systemPrompt: String = "", backend: ExecutionBackend = ExecutionBackend.CPU) {
+    suspend fun loadModel(modelPath: String, systemPrompt: String = "", backend: ExecutionBackend = ExecutionBackend.CPU) {
         if (isLoaded(modelPath, systemPrompt,backend)) return
 
         close()
 
-        if (modelPath.endsWith(".litertlm", ignoreCase = true)) {
-            loadLiteRtLmModel(modelPath, systemPrompt,backend)
-        } else {
-            loadMediaPipeModel(modelPath,backend)
+        when {
+            modelPath.endsWith(".litertlm", ignoreCase = true) -> {
+                loadLiteRtLmModel(modelPath, systemPrompt, backend)
+            }
+            modelPath.endsWith(".gguf", ignoreCase = true) -> {
+                loadGgufModel(modelPath, systemPrompt,backend)
+            }
+            else -> loadMediaPipeModel(modelPath, backend)
         }
         loadedModelPath = modelPath
         loadedSystemPrompt = systemPrompt.trim()
@@ -93,6 +105,11 @@ class LocalLLMManager(
                     val conversation = liteRtConversation
                         ?: return "LiteRT-LM model is not loaded yet."
                     conversation.sendMessage(prompt).toString()
+                }
+
+                ModelRuntime.GGUF -> {
+                    val engine = llamaEngine ?: return "GGUF model is not loaded yet."
+                    runBlocking { engine.generate(prompt).toList().joinToString(separator = "") }
                 }
 
                 null -> "Model is not loaded yet. Download and load a model first."
@@ -133,6 +150,16 @@ class LocalLLMManager(
                         onPartial(partialText)
                     }
                     finalResponse
+                }
+
+                ModelRuntime.GGUF -> {
+                    val engine = llamaEngine ?: return "GGUF model is not loaded yet."
+                    val response = StringBuilder()
+                    engine.generate(prompt).collect { token ->
+                        response.append(token)
+                        onPartial(response.toString())
+                    }
+                    response.toString()
                 }
 
                 null -> "Model is not loaded yet. Download and load a model first."
@@ -200,6 +227,8 @@ class LocalLLMManager(
                     finalResponse
                 }
 
+                ModelRuntime.GGUF -> "Error: GGUF models currently support text generation only."
+
                 null -> "Model is not loaded yet. Download and load a model first."
             }
         } catch (e: CancellationException) {
@@ -221,6 +250,11 @@ class LocalLLMManager(
 
         liteRtEngine?.close()
         liteRtEngine = null
+
+        if (loadedRuntime == ModelRuntime.GGUF) {
+            runCatching { llamaEngine?.cleanUp() }
+        }
+        llamaEngine = null
 
         loadedRuntime = null
         loadedModelPath = null
@@ -301,6 +335,18 @@ class LocalLLMManager(
             engine?.createConversation()
         }
         loadedRuntime = ModelRuntime.LITERTLM
+    }
+
+    private suspend fun loadGgufModel(modelPath: String, systemPrompt: String, backend: ExecutionBackend) {
+        val engine = LlamaCppEngine(context)
+        val nGpuLayers = if (backend == ExecutionBackend.GPU) 99 else 0 // means if GPU load all 99 layers else 0
+        engine.loadModel(modelPath, nGpuLayers)
+        systemPrompt.trim().takeIf { it.isNotEmpty() }?.let { prompt ->
+            engine.setSystemPrompt(prompt)
+        }
+        llamaEngine = engine
+        supportsVision = false
+        loadedRuntime = ModelRuntime.GGUF
     }
 
     private fun cacheImageForLiteRt(imageUri: Uri): String {
