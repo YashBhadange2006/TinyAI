@@ -14,11 +14,16 @@ interface InferenceEngine {
     val state: StateFlow<State>
 
     /**
-     * Load a model from the given path.
+     * Load a model from the given path with optional GPU offloading layers.
      *
      * @throws UnsupportedArchitectureException if model architecture not supported
      */
-    suspend fun loadModel(pathToModel: String)
+    suspend fun loadModel(pathToModel: String, nGpuLayers: Int = 0)
+
+    /**
+     * Get available backends/devices (e.g. CPU, Vulkan).
+     */
+    fun getAvailableBackends(): String
 
     /**
      * Sends a system prompt to the loaded model

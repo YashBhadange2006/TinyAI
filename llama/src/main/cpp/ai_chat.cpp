@@ -52,12 +52,28 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_init(JNIEnv * /*env*/, jobject 
 }
 
 extern "C"
+JNIEXPORT jstring JNICALL
+Java_com_arm_aichat_internal_InferenceEngineImpl_getAvailableBackends(JNIEnv *env, jobject) {
+    std::vector<std::string> devices;
+    for (size_t i = 0; i < ggml_backend_dev_count(); i++) {
+        auto *dev = ggml_backend_dev_get(i);
+        const char *name = ggml_backend_dev_name(dev);
+        if (name) {
+            devices.push_back(name);
+        }
+    }
+    std::string result = devices.empty() ? "CPU" : join(devices, ",");
+    return env->NewStringUTF(result.c_str());
+}
+
+extern "C"
 JNIEXPORT jint JNICALL
-Java_com_arm_aichat_internal_InferenceEngineImpl_load(JNIEnv *env, jobject, jstring jmodel_path) {
+Java_com_arm_aichat_internal_InferenceEngineImpl_load(JNIEnv *env, jobject, jstring jmodel_path, jint n_gpu_layers) {
     llama_model_params model_params = llama_model_default_params();
+    model_params.n_gpu_layers = n_gpu_layers;
 
     const auto *model_path = env->GetStringUTFChars(jmodel_path, 0);
-    LOGd("%s: Loading model from: \n%s\n", __func__, model_path);
+    LOGd("%s: Loading model from: \n%s\n (n_gpu_layers: %d)", __func__, model_path, n_gpu_layers);
 
     auto *model = llama_model_load_from_file(model_path, model_params);
     if (!model) {
@@ -551,12 +567,24 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_unload(JNIEnv * /*unused*/, job
     reset_long_term_states();
     reset_short_term_states();
 
-    // Free up resources
-    common_sampler_free(g_sampler);
+    // Free up resources safely (preventing memory leaks)
+    if (g_sampler) {
+        common_sampler_free(g_sampler);
+        g_sampler = nullptr;
+    }
     g_chat_templates.reset();
-    llama_batch_free(g_batch);
-    llama_free(g_context);
-    llama_model_free(g_model);
+    if (g_batch.token) {
+        llama_batch_free(g_batch);
+        g_batch = {};
+    }
+    if (g_context) {
+        llama_free(g_context);
+        g_context = nullptr;
+    }
+    if (g_model) {
+        llama_model_free(g_model);
+        g_model = nullptr;
+    }
 }
 
 extern "C"

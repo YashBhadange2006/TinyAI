@@ -83,7 +83,7 @@ class LocalLLMManager(
                 loadLiteRtLmModel(modelPath, systemPrompt, backend)
             }
             modelPath.endsWith(".gguf", ignoreCase = true) -> {
-                loadGgufModel(modelPath, systemPrompt)
+                loadGgufModel(modelPath, systemPrompt,backend)
             }
             else -> loadMediaPipeModel(modelPath, backend)
         }
@@ -337,8 +337,9 @@ class LocalLLMManager(
         loadedRuntime = ModelRuntime.LITERTLM
     }
 
-    private suspend fun loadGgufModel(modelPath: String, systemPrompt: String) {
+    private suspend fun loadGgufModel(modelPath: String, systemPrompt: String, backend: ExecutionBackend) {
         val engine = LlamaCppEngine(context)
+        val nGpuLayers = if (backend == ExecutionBackend.GPU) 99 else 0 // means if GPU load all 99 layers else 0
         engine.loadModel(modelPath)
         systemPrompt.trim().takeIf { it.isNotEmpty() }?.let { prompt ->
             engine.setSystemPrompt(prompt)

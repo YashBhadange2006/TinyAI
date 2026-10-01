@@ -13,11 +13,11 @@ class LlamaCppEngine(context : Context){
     val state : StateFlow<InferenceEngine.State>
         get() = engine.state
 
-    suspend fun loadModel(path: String) {
+    suspend fun loadModel(path: String, nGpuLayers: Int = 0) {
         state.first {
             it is InferenceEngine.State.Initialized || it is InferenceEngine.State.Error
         }
-        engine.loadModel(path)
+        engine.loadModel(path, nGpuLayers)
     }
 
     suspend fun setSystemPrompt(prompt: String) {

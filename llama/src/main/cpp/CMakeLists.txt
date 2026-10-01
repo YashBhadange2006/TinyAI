@@ -30,6 +30,16 @@ if(DEFINED ANDROID_ABI)
     endif()
 endif()
 
+# Optional Vulkan support based on host glslc availability
+find_program(GLSLC_EXECUTABLE NAMES glslc HINTS "$ENV{VULKAN_SDK}/Bin" "$ENV{VULKAN_SDK}/bin")
+if (GLSLC_EXECUTABLE)
+    message(STATUS "Found glslc: ${GLSLC_EXECUTABLE}. Enabling Vulkan backend.")
+    set(GGML_VULKAN ON)
+else()
+    message(STATUS "glslc not found. Disabling Vulkan backend (falling back to CPU).")
+    set(GGML_VULKAN OFF)
+endif()
+
 set(LLAMA_SRC ${CMAKE_CURRENT_LIST_DIR}/../../../../llama.cpp)
 add_subdirectory(${LLAMA_SRC} build-llama)
 
@@ -49,8 +59,14 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
         ${LLAMA_SRC}/ggml/include
         ${LLAMA_SRC}/ggml/src)
 
-target_link_libraries(${CMAKE_PROJECT_NAME}
+set(AI_CHAT_LIBS
         llama
         llama-common
         android
         log)
+
+if (GGML_VULKAN)
+    list(APPEND AI_CHAT_LIBS ggml-vulkan)
+endif()
+
+target_link_libraries(${CMAKE_PROJECT_NAME} ${AI_CHAT_LIBS})
