@@ -30,13 +30,16 @@ android {
 
     defaultConfig {
         applicationId = "com.yashbhadange.tinyai"
-        minSdk = 33
+        minSdk = 24
         targetSdk = 36
-        versionCode = 12
-        versionName = "1.5.6"
+        versionCode = 14
+        versionName = "1.5.8"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        
+
+        ndk {
+            abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86_64")
+        }
     }
 
     signingConfigs {

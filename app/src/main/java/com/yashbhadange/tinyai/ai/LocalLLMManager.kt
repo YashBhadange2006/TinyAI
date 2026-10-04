@@ -76,6 +76,10 @@ class LocalLLMManager(
     suspend fun loadModel(modelPath: String, systemPrompt: String = "", backend: ExecutionBackend = ExecutionBackend.CPU) {
         if (isLoaded(modelPath, systemPrompt,backend)) return
 
+        LocalAiDeviceSupport.unsupportedReason(context, modelPath)?.let { reason ->
+            throw IllegalStateException(reason)
+        }
+
         close()
 
         when {

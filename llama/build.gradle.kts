@@ -10,13 +10,13 @@ android {
     ndkVersion = "29.0.13113456"
 
     defaultConfig {
-        minSdk = 33
+        minSdk = 24
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
 
         ndk {
-             abiFilters += listOf("arm64-v8a", "x86_64")
+             abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86_64")
         }
         externalNativeBuild {
             cmake {
@@ -33,6 +33,9 @@ android {
                 arguments += "-DGGML_BACKEND_DL=OFF"
                 arguments += "-DGGML_CPU_ALL_VARIANTS=OFF"
                 arguments += "-DGGML_LLAMAFILE=OFF"
+
+                cppFlags += "-Wno-constant-conversion"
+
             }
         }
         aarMetadata {
