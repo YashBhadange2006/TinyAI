@@ -6,8 +6,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -19,6 +21,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.yashbhadange.tinyai.components.ModelItemRow
@@ -93,12 +96,17 @@ private fun RemoteModelVersionsContent(
 ) {
     val versionModels = repo.toVersionModelSpecs()
 
-    LazyColumn(
+    val configuration = LocalConfiguration.current
+    val columns = if (configuration.screenWidthDp > configuration.screenHeightDp) 2 else 1
+
+    LazyVerticalGrid(
         modifier = modifier.fillMaxSize(),
+        columns = GridCells.Fixed(columns),
         contentPadding = PaddingValues(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        item {
+        item(span = { GridItemSpan(maxLineSpan) }) {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
                     text = repo.displayName,
@@ -114,7 +122,7 @@ private fun RemoteModelVersionsContent(
         }
 
         if (versionModels.isEmpty()) {
-            item {
+            item(span = { GridItemSpan(maxLineSpan) }) {
                 Text(
                     text = "No ${repo.format.extension} versions were found for this model.",
                     style = MaterialTheme.typography.bodyMedium,

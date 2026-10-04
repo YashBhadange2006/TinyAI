@@ -28,6 +28,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
@@ -51,6 +52,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.text.font.FontWeight
@@ -210,6 +212,11 @@ fun ModelSettingsContent(
     customModels: List<ModelSpec> = emptyList()
 ) {
     var selectedTab by remember { mutableStateOf(SettingsTab.EXPLORE) }
+    val configuration = LocalConfiguration.current
+    val modelCardWidthFraction = minOf(
+        0.85f,
+        configuration.screenHeightDp.toFloat() / configuration.screenWidthDp.coerceAtLeast(1)
+    )
     val remoteVersionModels = remember(remoteModelGroups) {
         remoteModelGroups.flatMap { it.toVersionModelSpecs() }
     }
@@ -308,15 +315,12 @@ fun ModelSettingsContent(
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(40.dp)
-                                    .background(
-                                        color = Color.Transparent,
-                                        shape = androidx.compose.foundation.shape.RoundedCornerShape(
+                                    .clip(
+                                        RoundedCornerShape(
                                             20.dp
                                         )
                                     )
                                     .clickable(
-                                        interactionSource = remember { MutableInteractionSource() },
-                                        indication = null,
                                         onClick = { selectedTab = tab }
                                     ),
                                 contentAlignment = Alignment.Center
@@ -388,10 +392,8 @@ fun ModelSettingsContent(
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier
                                 .align(Alignment.CenterEnd)
-                                .clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = null
-                                ) {
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable {
                                     onSeeMoreClicked()
                                 }
                         )
@@ -421,7 +423,7 @@ fun ModelSettingsContent(
                                 model = model,
                                 status = getStatus(model),
                                 systemPrompt = getSystemPrompt(model),
-                                modifier = Modifier.fillParentMaxWidth(0.85f), // responsively handle Card layout, 85% of any size of screen
+                                modifier = Modifier.fillParentMaxWidth(modelCardWidthFraction),
                                 onDownload = { onDownload(model) },
                                 onDelete = { onDelete(model) },
                                 onLoad = { onLoad(model) },

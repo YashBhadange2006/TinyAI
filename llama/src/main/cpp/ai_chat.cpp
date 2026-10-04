@@ -24,13 +24,15 @@ static std::string join(const std::vector<T> &values, const std::string &delim) 
 /**
  * LLama resources: context, model, batch and sampler
  */
+constexpr bool  LOW_MEMORY_32_BIT       = sizeof(void *) == 4;
 constexpr int   N_THREADS_MIN           = 2;
-constexpr int   N_THREADS_MAX           = 4;
+constexpr int   N_THREADS_MAX           = LOW_MEMORY_32_BIT ? 2 : 4;
 constexpr int   N_THREADS_HEADROOM      = 2;
 
-constexpr int   DEFAULT_CONTEXT_SIZE    = 8192;
+constexpr int   DEFAULT_CONTEXT_SIZE    = LOW_MEMORY_32_BIT ? 256 : 8192;
 constexpr int   OVERFLOW_HEADROOM       = 4;
-constexpr int   BATCH_SIZE              = 512;
+constexpr int   BATCH_SIZE              = LOW_MEMORY_32_BIT ? 64 : 512;
+constexpr int   MAX_PREDICT_TOKENS      = LOW_MEMORY_32_BIT ? 64 : 1024;
 constexpr float DEFAULT_SAMPLER_TEMP    = 0.3f;
 
 static llama_model                      * g_model;
@@ -70,7 +72,10 @@ extern "C"
 JNIEXPORT jint JNICALL
 Java_com_arm_aichat_internal_InferenceEngineImpl_load(JNIEnv *env, jobject, jstring jmodel_path, jint n_gpu_layers) {
     llama_model_params model_params = llama_model_default_params();
-    model_params.n_gpu_layers = n_gpu_layers;
+    model_params.n_gpu_layers = LOW_MEMORY_32_BIT ? 0 : n_gpu_layers;
+    if (LOW_MEMORY_32_BIT) {
+        model_params.load_mode = LLAMA_LOAD_MODE_NONE;
+    }
 
     const auto *model_path = env->GetStringUTFChars(jmodel_path, 0);
     LOGd("%s: Loading model from: \n%s\n (n_gpu_layers: %d)", __func__, model_path, n_gpu_layers);
@@ -424,6 +429,7 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_processUserPrompt(
         jstring juser_prompt,
         jint n_predict
 ) {
+    n_predict = std::min(n_predict, MAX_PREDICT_TOKENS);
     // Reset short-term states
     reset_short_term_states();
 

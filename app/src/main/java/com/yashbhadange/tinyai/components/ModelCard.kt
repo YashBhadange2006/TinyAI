@@ -13,7 +13,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -61,6 +60,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -272,13 +272,19 @@ fun ModelItemRow(
             Color.Transparent
         )
     )
+    val cardColor = MaterialTheme.colorScheme.surfaceContainerLowest
+
+    val isTv = (LocalConfiguration.current.uiMode and Configuration.UI_MODE_TYPE_MASK) ==
+        Configuration.UI_MODE_TYPE_TELEVISION
 
     Card(
         shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
+            containerColor = cardColor,
+            disabledContainerColor = cardColor
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        enabled = !isTv,
         modifier = modifier
             .padding(5.dp)
             .shadow(
@@ -293,7 +299,7 @@ fun ModelItemRow(
                 shape = RoundedCornerShape(28.dp)
             ),
         onClick = {
-            if(status.isDownloaded){
+            if (status.isDownloaded) {
                 isExpanded = !isExpanded
             }
         }
@@ -486,12 +492,11 @@ fun ModelItemRow(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = null
-                                ) {
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable {
                                     isExpanded = !isExpanded
-                                },
+                                }
+                                .padding(vertical = 8.dp, horizontal = 12.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.Center,
                         ){

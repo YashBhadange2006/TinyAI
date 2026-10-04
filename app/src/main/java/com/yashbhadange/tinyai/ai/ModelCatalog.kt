@@ -57,6 +57,15 @@ object ModelCatalog {
         description = "Extremely compact and highly efficient model built for basic text generation and instant responses."
     )
 
-    val supportedModels = listOf(gemma4_2b,deepseek_r1_distill_qwen_1_5B,gemma3_1b,qwen25_1_5B_Instruct,qwen3_0_6b)
+    val qwen25_0_5B_tv = ModelSpec(
+        id = "qwen25_0_5b_tv_gguf",
+        displayName = "Qwen2.5-0.5B-Instruct Q4_K_M",
+        sizeLabel = "491 MB download",
+        downloadUrl = "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf?download=true",
+        fileName = "qwen2.5-0.5b-instruct-q4_k_m.gguf",
+        description = "Low-memory GGUF model for 32-bit Android TV devices. Uses a reduced context window."
+    )
+
+    val supportedModels = listOf(gemma4_2b,deepseek_r1_distill_qwen_1_5B,gemma3_1b,qwen25_1_5B_Instruct,qwen3_0_6b,qwen25_0_5B_tv)
     val defaultModel = gemma4_2b
 }
