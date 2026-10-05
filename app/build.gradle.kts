@@ -32,8 +32,8 @@ android {
         applicationId = "com.yashbhadange.tinyai"
         minSdk = 24
         targetSdk = 36
-        versionCode = 15
-        versionName = "1.6.0"
+        versionCode = 16
+        versionName = "1.6.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
