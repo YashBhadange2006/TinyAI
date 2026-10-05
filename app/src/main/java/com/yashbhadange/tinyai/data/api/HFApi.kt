@@ -21,6 +21,7 @@ interface HFApi {
     @GET("api/models/{repoId}")
     suspend fun fetchModelInfo(
         @Path(value = "repoId", encoded = true) repoId: String,
-        @Query("blobs") includeFileMetadata: Boolean = true
+        @Query("blobs") includeFileMetadata: Boolean = true,
+        @Query("files_metadata") filesMetadata: Boolean = true
     ): HFModel
 }

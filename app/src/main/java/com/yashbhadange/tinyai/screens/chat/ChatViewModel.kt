@@ -27,7 +27,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     internal val mediaStorage = MediaStorage(application)
     internal val llm = LocalLLMManager(application)
     internal val downloader = ModelDownloader(application)
-    internal val remoteModelsRepository = HuggingFaceModelsRepository()
+    val remoteModelsRepository = HuggingFaceModelsRepository()
     internal val chatDao = AppDatabase.getDatabase(application).chatDao()
 
     internal var activeModel = ModelCatalog.defaultModel

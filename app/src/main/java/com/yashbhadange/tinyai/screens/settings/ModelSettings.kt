@@ -276,7 +276,7 @@ fun ModelSettingsContent(
         modifier = modifier.fillMaxSize(),
         state = listState,
         contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
 
         // will implement this feature in future if needed
@@ -498,7 +498,6 @@ fun ModelSettingsContent(
                     RemoteModelSummaryCard(
                         title = group.displayName,
                         subtitle = "${group.versionFiles.size} downloadable ${group.format.extension} file${if (group.versionFiles.size == 1) "" else "s"}",
-                        versionLabel = "Open versions",
                         onClick = { onOpenRemoteModelVersions(group) }
                     )
                 }

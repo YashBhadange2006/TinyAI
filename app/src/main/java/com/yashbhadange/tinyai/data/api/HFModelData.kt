@@ -93,11 +93,11 @@ data class HFRemoteModelGroup(
         return versionFiles.map { file ->
             ModelSpec(
                 id = remoteVersionId(file.fileName),
-                displayName = "${displayName} - ${file.fileName.removeSuffix(format.extension)}",
+                displayName = file.fileName,
                 sizeLabel = file.size.toReadableSize(),
                 downloadUrl = file.downloadUrl(id),
                 fileName = file.fileName,
-                description = "Download ${file.fileName} from the $displayName model repository."
+                description = ""
             )
         }
     }
