@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import java.text.NumberFormat
 import com.yashbhadange.tinyai.components.ModelItemRow
 import com.yashbhadange.tinyai.data.api.HFRemoteModelGroup
 import com.yashbhadange.tinyai.data.api.ModelFormat
@@ -118,6 +119,25 @@ private fun RemoteModelVersionsContent(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                Text(
+                    text = "Downloads ${repo.downloads.formatCount()}  |  Likes ${repo.likes.formatCount()}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                repo.createdAt?.let { createdAt ->
+                    Text(
+                        text = "Created ${createdAt.toDisplayDate()}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                repo.lastModified?.let { lastModified ->
+                    Text(
+                        text = "Last modified ${lastModified.toDisplayDate()}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
 
@@ -150,3 +170,7 @@ private fun RemoteModelVersionsContent(
         }
     }
 }
+
+private fun Int.formatCount(): String = NumberFormat.getIntegerInstance().format(this)
+
+private fun String.toDisplayDate(): String = take(10)

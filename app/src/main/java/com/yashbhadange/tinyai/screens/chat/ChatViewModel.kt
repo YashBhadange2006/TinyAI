@@ -13,6 +13,7 @@ import com.yashbhadange.tinyai.ai.ModelCatalog
 import com.yashbhadange.tinyai.ai.ModelDownloader
 import com.yashbhadange.tinyai.data.api.HFRemoteModelGroup
 import com.yashbhadange.tinyai.data.api.HuggingFaceModelsRepository
+import com.yashbhadange.tinyai.data.api.ModelFormat
 import com.yashbhadange.tinyai.data.database.AppDatabase
 import com.yashbhadange.tinyai.data.database.ChatSession
 import com.yashbhadange.tinyai.data.storage.MediaStorage
@@ -66,6 +67,14 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     var remoteModelGroups by mutableStateOf<List<HFRemoteModelGroup>>(emptyList())
         internal set
+
+    var isLoadingMoreRemoteModels by mutableStateOf(false)
+        internal set
+
+    var hasMoreRemoteModels by mutableStateOf(true)
+        internal set
+
+    internal var nextRemoteModelsCursors: Map<ModelFormat, String?> = emptyMap()
 
     var customModels by mutableStateOf<List<com.yashbhadange.tinyai.ai.ModelSpec>>(emptyList())
         internal set

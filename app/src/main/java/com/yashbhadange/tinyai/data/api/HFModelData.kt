@@ -6,10 +6,32 @@ import com.google.gson.annotations.SerializedName
 
 @Keep
 data class HFModel(
-    @SerializedName("id") val id: String,
-    @SerializedName("downloads") val downloads: Int? = null,
-    @SerializedName("likes") val likes: Int? = null,
-    @SerializedName("siblings") val siblings: List<HFSibling>? = null
+    @SerializedName("id")
+    val id: String,
+
+    @SerializedName("author")
+    val author: String? = null,
+
+    @SerializedName("downloads")
+    val downloads: Int? = null,
+
+    @SerializedName("likes")
+    val likes: Int? = null,
+
+    @SerializedName("pipeline_tag")
+    val pipelineTag: String? = null,
+
+    @SerializedName("library_name")
+    val libraryName: String? = null,
+
+    @SerializedName("lastModified")
+    val lastModified: String? = null,
+
+    @SerializedName("createdAt")
+    val createdAt: String? = null,
+
+    @SerializedName("siblings")
+    val siblings: List<HFSibling>? = null
 ) {
     fun getLitertLMFiles(): List<HFSibling> {
         return siblings?.filter { it.fileName.endsWith(".litertlm", ignoreCase = true) } ?: emptyList()
@@ -33,18 +55,35 @@ data class HFSibling(
     }
 }
 
-enum class ModelFormat(val extension: String)
-{
-    LITERTLM(".litertlm"),
-    TASK(".task"),
-    GGUF(".gguf")
-}
 @Keep
 data class HFRemoteModelGroup(
-    @SerializedName("id") val id: String,
-    @SerializedName("downloads") val downloads: Int,
-    @SerializedName("likes") val likes: Int,
-    @SerializedName("versionFiles") val versionFiles: List<HFSibling>,
+    @SerializedName("id")
+    val id: String,
+
+    @SerializedName("author")
+    val author: String? = null,
+
+    @SerializedName("downloads")
+    val downloads: Int,
+
+    @SerializedName("likes")
+    val likes: Int,
+
+    @SerializedName("pipelineTag")
+    val pipelineTag: String? = null,
+
+    @SerializedName("libraryName")
+    val libraryName: String? = null,
+
+    @SerializedName("lastModified")
+    val lastModified: String? = null,
+
+    @SerializedName("createdAt")
+    val createdAt: String? = null,
+
+    @SerializedName("versionFiles")
+    val versionFiles: List<HFSibling>,
+
     val format: ModelFormat
 ) {
     val displayName: String
@@ -58,7 +97,7 @@ data class HFRemoteModelGroup(
                 sizeLabel = file.size.toReadableSize(),
                 downloadUrl = file.downloadUrl(id),
                 fileName = file.fileName,
-                description = "Download ${file.fileName} from the ${displayName} model repository."
+                description = "Download ${file.fileName} from the $displayName model repository."
             )
         }
     }
@@ -80,8 +119,13 @@ fun HFModel.toRemoteGroup(format: ModelFormat): HFRemoteModelGroup? {
 
     return HFRemoteModelGroup(
         id = id,
+        author = author,
         downloads = downloads ?: 0,
         likes = likes ?: 0,
+        pipelineTag = pipelineTag,
+        libraryName = libraryName,
+        lastModified = lastModified,
+        createdAt = createdAt,
         versionFiles = files,
         format = format
     )

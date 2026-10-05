@@ -1,41 +1,45 @@
 package com.yashbhadange.tinyai.data.api
 
+import android.net.Uri
+import retrofit2.HttpException
+
 class HuggingFaceModelsRepository(
     private val api: HFApi = RetrofitClient.api
 ) {
-    suspend fun fetchRemoteLiteRtModels(): List<HFRemoteModelGroup> {
-        return api.fetchLiteRTModels(
-            author = "litert-community",
-            expand = "siblings",
-            limit = 100,
-            sort = "downloads",
-            direction = "-1"
-        ).mapNotNull { it.toRemoteGroup(ModelFormat.LITERTLM) }
-    }
+    suspend fun fetchModelsPage(
+        cursors: Map<ModelFormat, String?>? = null
+    ): HFModelPage {
+        val formatsToLoad = cursors
+            ?.filterValues { it != null }
+            ?.keys
+            ?.takeIf { it.isNotEmpty() }
+            ?: ModelFormat.entries
 
-    suspend fun fetchRemoteTaskModels(author: String?=null): List<HFRemoteModelGroup> {
-        return api.fetchLiteRTModels(
-            author = author,
-            expand = "siblings",
-            limit = 100,
-            sort = "downloads",
-            direction = "-1"
-        ).mapNotNull { it.toRemoteGroup(ModelFormat.TASK) }
-    }
+        val pages = formatsToLoad.associateWith { format ->
+            val response = api.fetchModels(
+                filter = format.hfFilter.orEmpty(),
+                limit = PAGE_SIZE,
+                cursor = cursors?.get(format)
+            )
+            if (!response.isSuccessful) {
+                throw HttpException(response)
+            }
+            response
+        }
 
-    suspend fun fetchRemoteGgufModels(author: String?=null): List<HFRemoteModelGroup> {
-        return api.fetchLiteRTModels(
-            author = author,
-            expand = "siblings",
-            limit = 100,
-            sort = "downloads",
-            direction = "-1"
-        ).mapNotNull { it.toRemoteGroup(ModelFormat.GGUF) }
+        return HFModelPage(
+            groups = pages.flatMap { (format, response) ->
+                response.body().orEmpty().mapNotNull { model -> model.toRemoteGroup(format) }
+            },
+            nextCursors = pages.mapValues { (_, response) ->
+                response.headers()["Link"].nextPageCursor()
+            }.filterValues { it != null }
+        )
     }
 
     suspend fun fetchSpecificRepo(repoId: String): List<HFRemoteModelGroup> {
         return try {
-            val model = api.fetchModelInfo(repoId, expand = "siblings")
+            val model = api.fetchModelInfo(repoId)
             val groups = mutableListOf<HFRemoteModelGroup>()
 
             model.toRemoteGroup(ModelFormat.LITERTLM)?.let { groups.add(it) }
@@ -48,4 +52,23 @@ class HuggingFaceModelsRepository(
             emptyList()
         }
     }
+}
+
+private const val PAGE_SIZE = 10
+
+data class HFModelPage(
+    val groups: List<HFRemoteModelGroup>,
+    val nextCursors: Map<ModelFormat, String?>
+)
+
+private fun String?.nextPageCursor(): String? {
+    val nextPageUrl = this
+        ?.split(',')
+        ?.firstOrNull { it.contains("rel=\"next\"") }
+        ?.substringAfter('<')
+        ?.substringBefore('>')
+        ?.takeIf { it.isNotBlank() }
+        ?: return null
+
+    return Uri.parse(nextPageUrl).getQueryParameter("cursor")
 }

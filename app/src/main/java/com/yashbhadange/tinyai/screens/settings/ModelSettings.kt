@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
@@ -45,10 +46,12 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -74,12 +77,14 @@ import com.yashbhadange.tinyai.screens.chat.getSystemPrompt
 import com.yashbhadange.tinyai.screens.chat.isLoadedModel
 import com.yashbhadange.tinyai.screens.chat.isLoadingModel
 import com.yashbhadange.tinyai.screens.chat.loadSelectedModel
+import com.yashbhadange.tinyai.screens.chat.loadMoreRemoteModels
 import com.yashbhadange.tinyai.screens.chat.updateSystemPrompt
 import com.yashbhadange.tinyai.screens.chat.ChatViewModel
 import com.yashbhadange.tinyai.screens.chat.toggleGpu
 import com.yashbhadange.tinyai.screens.chat.unloadSelectedModel
 import com.yashbhadange.tinyai.ui.theme.LocalModelAITheme
 import kotlin.contracts.contract
+import kotlinx.coroutines.flow.distinctUntilChanged
 
 enum class SettingsTab(val title: String) {
     EXPLORE("Explore"),
@@ -181,6 +186,9 @@ fun ModelSettingsScreen(
             checkIsLoading = { model -> chatViewModel.isLoadingModel(model) },
             checkIsLoaded = { model -> chatViewModel.isLoadedModel(model) },
             onOpenRemoteModelVersions = onOpenRemoteModelVersions,
+            onLoadMoreRemoteModels = { chatViewModel.loadMoreRemoteModels() },
+            isLoadingMoreRemoteModels = chatViewModel.isLoadingMoreRemoteModels,
+            hasMoreRemoteModels = chatViewModel.hasMoreRemoteModels,
             onSeeMoreClicked = onSeeMoreClicked,
             isGpuEnabled =  {chatViewModel.isGpuEnabledForModel(it.id)},
             onGpuToggle = { model, enabled -> chatViewModel.toggleGpu(model.id,enabled) },
@@ -206,6 +214,9 @@ fun ModelSettingsContent(
     checkIsLoading: (ModelSpec) -> Boolean,
     checkIsLoaded: (ModelSpec) -> Boolean,
     onOpenRemoteModelVersions: (HFRemoteModelGroup) -> Unit = {},
+    onLoadMoreRemoteModels: () -> Unit = {},
+    isLoadingMoreRemoteModels: Boolean = false,
+    hasMoreRemoteModels: Boolean = false,
     onSeeMoreClicked: () -> Unit,
     isGpuEnabled: (ModelSpec) -> Boolean,
     onGpuToggle: (ModelSpec,Boolean) -> Unit,
@@ -246,9 +257,24 @@ fun ModelSettingsContent(
     }
 
     val downloadedModels = allKnownModels.filter { getStatus(it).isDownloaded }
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(listState, searchQuery, filteredRemoteGroups.size, hasMoreRemoteModels) {
+        if (searchQuery.isNotBlank() || !hasMoreRemoteModels) return@LaunchedEffect
+
+        snapshotFlow {
+            val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
+            lastVisible >= listState.layoutInfo.totalItemsCount - 5
+        }
+            .distinctUntilChanged()
+            .collect { isNearEnd ->
+                if (isNearEnd) onLoadMoreRemoteModels()
+            }
+    }
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
+        state = listState,
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
@@ -475,6 +501,15 @@ fun ModelSettingsContent(
                         versionLabel = "Open versions",
                         onClick = { onOpenRemoteModelVersions(group) }
                     )
+                }
+                if (isLoadingMoreRemoteModels) {
+                    item {
+                        Text(
+                            text = "Loading more models...",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(vertical = 8.dp)
+                        )
+                    }
                 }
             }
         } else {

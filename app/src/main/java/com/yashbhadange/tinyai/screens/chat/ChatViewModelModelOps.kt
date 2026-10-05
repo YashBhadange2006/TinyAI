@@ -221,19 +221,49 @@ fun ChatViewModel.importCustomModelFile(context: Context, uri: Uri) {
 }
 
 fun ChatViewModel.loadRemoteModelCatalog() {
+    if (isLoadingMoreRemoteModels) return
+
+    isLoadingMoreRemoteModels = true
     viewModelScope.launch {
-        remoteModelGroups = withContext(Dispatchers.IO) {
+        val page = withContext(Dispatchers.IO) {
             try {
-                remoteModelsRepository.fetchRemoteLiteRtModels() +
-                    remoteModelsRepository.fetchRemoteTaskModels() +
-                    remoteModelsRepository.fetchRemoteGgufModels()
+                remoteModelsRepository.fetchModelsPage()
             } catch (e: Exception) {
                 android.util.Log.e("HF_DEBUG", "Failed to fetch models", e)
-                emptyList()
+                null
             }
         }
+        remoteModelGroups = page?.groups.orEmpty()
+        nextRemoteModelsCursors = page?.nextCursors.orEmpty()
+        hasMoreRemoteModels = nextRemoteModelsCursors.isNotEmpty()
+        isLoadingMoreRemoteModels = false
         refreshCustomModelsFromStorage()
         restoreLoadedSessionModelIfNeeded()
+    }
+}
+
+fun ChatViewModel.loadMoreRemoteModels() {
+    if (isLoadingMoreRemoteModels || !hasMoreRemoteModels) return
+    val cursors = nextRemoteModelsCursors
+
+    isLoadingMoreRemoteModels = true
+    viewModelScope.launch {
+        val page = withContext(Dispatchers.IO) {
+            try {
+                remoteModelsRepository.fetchModelsPage(cursors)
+            } catch (e: Exception) {
+                android.util.Log.e("HF_DEBUG", "Failed to load more models", e)
+                null
+            }
+        }
+
+        page?.let {
+            remoteModelGroups = (remoteModelGroups + it.groups)
+                .distinctBy { group -> "${group.id}_${group.format}" }
+            nextRemoteModelsCursors = it.nextCursors
+            hasMoreRemoteModels = it.nextCursors.isNotEmpty()
+        }
+        isLoadingMoreRemoteModels = false
     }
 }
 internal fun ChatViewModel.allKnownModels(): List<ModelSpec> {

@@ -4,10 +4,10 @@
     <selectionStates>
       <SelectionState runConfigName="app">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2026-06-28T05:54:11.452770300Z">
+        <DropdownSelection timestamp="2026-10-04T13:25:54.885112200Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="LocalEmulator" identifier="path=D:\Android\.android\avd\Yash_Nokia_2.avd" />
+              <DeviceId pluginId="LocalEmulator" identifier="path=D:\Android\.android\avd\Television_1080p.avd" />
             </handle>
           </Target>
         </DropdownSelection>
