@@ -156,10 +156,7 @@ class ModelDownloader(
     }
 
     private fun getModelFile(model: ModelSpec): File {
-        val file = File(context.getExternalFilesDir("models"), model.fileName)
-        Log.d("MODEL_FILE", file.absolutePath)
-        Log.d("MODEL_EXISTS", file.exists().toString())
-        return file
+        return File(context.getExternalFilesDir("models"), model.fileName)
     }
 
 

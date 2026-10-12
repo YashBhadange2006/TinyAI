@@ -183,6 +183,7 @@ fun ModelSettingsScreen(
             getSystemPrompt = { model -> chatViewModel.getSystemPrompt(model) },
             onSystemPromptChange = { model, prompt -> chatViewModel.updateSystemPrompt(model, prompt) },
             getStatus = { model -> chatViewModel.getModelStatus(model) },
+            downloadStatusRevision = chatViewModel.modelDownloadStatus,
             checkIsLoading = { model -> chatViewModel.isLoadingModel(model) },
             checkIsLoaded = { model -> chatViewModel.isLoadedModel(model) },
             onOpenRemoteModelVersions = onOpenRemoteModelVersions,
@@ -211,6 +212,7 @@ fun ModelSettingsContent(
     getSystemPrompt: (ModelSpec) -> String,
     onSystemPromptChange: (ModelSpec, String) -> Unit,
     getStatus: (ModelSpec) -> ModelDownloadStatus,
+    downloadStatusRevision: ModelDownloadStatus? = null,
     checkIsLoading: (ModelSpec) -> Boolean,
     checkIsLoaded: (ModelSpec) -> Boolean,
     onOpenRemoteModelVersions: (HFRemoteModelGroup) -> Unit = {},
@@ -231,7 +233,9 @@ fun ModelSettingsContent(
     val remoteVersionModels = remember(remoteModelGroups) {
         remoteModelGroups.flatMap { it.toVersionModelSpecs() }
     }
-    val allKnownModels = (builtInModels + remoteVersionModels + customModels).distinctBy { it.fileName }
+    val allKnownModels = remember(builtInModels, remoteVersionModels, customModels) {
+        (builtInModels + remoteVersionModels + customModels).distinctBy { it.fileName }
+    }
 
     val filteredBuiltInModels = remember(searchQuery, builtInModels) {
         if (searchQuery.isBlank()) {
@@ -256,7 +260,13 @@ fun ModelSettingsContent(
         }
     }
 
-    val downloadedModels = allKnownModels.filter { getStatus(it).isDownloaded }
+    val downloadedModels = remember(selectedTab, allKnownModels, downloadStatusRevision) {
+        if (selectedTab == SettingsTab.MY_MODELS) {
+            allKnownModels.filter { getStatus(it).isDownloaded }
+        } else {
+            emptyList()
+        }
+    }
     val listState = rememberLazyListState()
 
     LaunchedEffect(listState, searchQuery, filteredRemoteGroups.size, hasMoreRemoteModels) {
