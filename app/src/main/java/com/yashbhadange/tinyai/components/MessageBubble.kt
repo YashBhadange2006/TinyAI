@@ -98,9 +98,9 @@ fun MessageBubble(message: Message) {
     }
 
     val contentColor = if (message.isUser) {
-        MaterialTheme.colorScheme.onPrimaryContainer
+        MaterialTheme.colorScheme.onTertiaryContainer
     } else {
-        MaterialTheme.colorScheme.onSurfaceVariant
+        MaterialTheme.colorScheme.onPrimaryContainer
     }
 
     Box(
