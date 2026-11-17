@@ -110,7 +110,6 @@ fun RemoteModelVersionsScreen(
         mutableStateOf(versionModels.firstOrNull()?.id)
     }
     val selectedModel = versionModels.firstOrNull { it.id == selectedModelId } ?: versionModels.firstOrNull()
-    val currentDownloadStatus = selectedModel?.let { chatViewModel.getModelStatus(it) } ?: chatViewModel.modelDownloadStatus
 
     Scaffold(
         topBar = {
@@ -143,7 +142,7 @@ fun RemoteModelVersionsScreen(
                     ) {
                         OriginalStyleDownloadSection(
                             model = selectedModel,
-                            status = currentDownloadStatus,
+                            status = { selectedModel.let { chatViewModel.getModelStatus(it) } },
                             systemPrompt = chatViewModel.getSystemPrompt(selectedModel),
                             isGpuEnabled = chatViewModel.isGpuEnabledForModel(selectedModel.id),
                             isLoading = chatViewModel.isLoadingModel(selectedModel),
@@ -321,7 +320,7 @@ private fun RemoteModelVersionsContent(
 @Composable
 private fun OriginalStyleDownloadSection(
     model: ModelSpec,
-    status: ModelDownloadStatus,
+    status: () -> ModelDownloadStatus,
     systemPrompt: String,
     isGpuEnabled: Boolean,
     isLoading: Boolean,
@@ -333,6 +332,7 @@ private fun OriginalStyleDownloadSection(
     onSystemPromptChange: (String) -> Unit,
     onGpuToggle: (Boolean) -> Unit
 ) {
+    val currentStatus = status()
     var isExpanded by remember { mutableStateOf(false) }
 
     val arrowRotationState by animateFloatAsState(
@@ -351,7 +351,7 @@ private fun OriginalStyleDownloadSection(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        if (status.isDownloading) {
+        if (currentStatus.isDownloading) {
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -366,13 +366,13 @@ private fun OriginalStyleDownloadSection(
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
-                        text = "%",
+                        text = "${currentStatus.progressPercent ?: 0}%",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold
                     )
                 }
                 LinearProgressIndicator(
-                    progress = { ((status.progressPercent ?: 0).coerceIn(0, 100)) / 100f },
+                    progress = { ((currentStatus.progressPercent ?: 0).coerceIn(0, 100)) / 100f },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(6.dp)
@@ -384,7 +384,7 @@ private fun OriginalStyleDownloadSection(
         }
 
         when {
-            status.isDownloading -> {
+            currentStatus.isDownloading -> {
                 Button(
                     onClick = {},
                     enabled = false,
@@ -394,7 +394,7 @@ private fun OriginalStyleDownloadSection(
                     Text("Downloading...", fontWeight = FontWeight.SemiBold)
                 }
             }
-            status.isDownloaded -> {
+            currentStatus.isDownloaded -> {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),

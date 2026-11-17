@@ -66,6 +66,6 @@ object ModelCatalog {
         description = "Low-memory GGUF model for 32-bit Android TV devices. Uses a reduced context window."
     )
 
-    val supportedModels = listOf(gemma4_2b,deepseek_r1_distill_qwen_1_5B,gemma3_1b,qwen25_1_5B_Instruct,qwen3_0_6b,qwen25_0_5B_tv)
+    val supportedModels = listOf(qwen25_0_5B_tv,gemma4_2b,deepseek_r1_distill_qwen_1_5B,gemma3_1b,qwen25_1_5B_Instruct,qwen3_0_6b)
     val defaultModel = gemma4_2b
 }

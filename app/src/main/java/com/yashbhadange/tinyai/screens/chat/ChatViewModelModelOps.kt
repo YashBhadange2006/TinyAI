@@ -39,10 +39,12 @@ fun ChatViewModel.refreshModelStatus(model: ModelSpec) {
     } else {
         latestStatus
     }
+    _downloadProgress.value = modelDownloadStatus
     isModelLoaded = loadedModelId == activeModel.id
     if (modelDownloadStatus.isDownloaded || modelDownloadStatus.statusMessage.contains("failed", ignoreCase = true)) {
         if (downloadingModelId == model.id) {
             downloadingModelId = null
+            downloadingModelFileName = null
         }
     }
     if (modelDownloadStatus.isDownloading || downloadingModelId == model.id) {
@@ -52,12 +54,14 @@ fun ChatViewModel.refreshModelStatus(model: ModelSpec) {
 
 fun ChatViewModel.downloadSelectedModel(model: ModelSpec) {
     downloadingModelId = model.id
+    downloadingModelFileName = model.fileName
     modelDownloadStatus = ModelDownloadStatus(
         isDownloaded = false,
         isDownloading = true,
         progressPercent = 0,
         statusMessage = "Starting download"
     )
+    _downloadProgress.value = modelDownloadStatus
     downloader.downloadModel(model)
     refreshModelStatus(model)
     startDownloadPolling(model)
@@ -71,6 +75,7 @@ fun ChatViewModel.loadSelectedModel(model: ModelSpec) {
     systemPromptDrafts[model.id] = currentSystemPrompt
     val status = downloader.getDownloadStatus(model)
     modelDownloadStatus = status
+    _downloadProgress.value = status
 
     if (!status.isDownloaded) {
         messages.add(
@@ -111,9 +116,11 @@ fun ChatViewModel.deleteSelectedModel(model: ModelSpec) {
             }
             if (downloadingModelId == model.id) {
                 downloadingModelId = null
+                downloadingModelFileName = null
             }
             if (activeModel.id == model.id) {
                 modelDownloadStatus = downloader.getDownloadStatus(model)
+                _downloadProgress.value = modelDownloadStatus
             }
             refreshCustomModelsFromStorage()
             messages.add(
@@ -128,7 +135,7 @@ fun ChatViewModel.deleteSelectedModel(model: ModelSpec) {
 }
 
 fun ChatViewModel.getModelStatus(model: ModelSpec): ModelDownloadStatus {
-    return if (model.id == downloadingModelId) {
+    return if (model.id == downloadingModelId || model.fileName == downloadingModelFileName) {
         modelDownloadStatus
     } else {
         downloader.getDownloadStatus(model)
@@ -294,6 +301,7 @@ internal suspend fun ChatViewModel.loadModelForContext(
     val backend = if(isGpuEnabledForModel(model.id)) ExecutionBackend.GPU else ExecutionBackend.CPU
     val status = downloader.getDownloadStatus(model)
     modelDownloadStatus = status
+    _downloadProgress.value = status
 
     if (!status.isDownloaded) {
         messages.add(
@@ -374,10 +382,12 @@ private fun ChatViewModel.startDownloadPolling(model: ModelSpec) {
             } else {
                 latestStatus
             }
+            _downloadProgress.value = modelDownloadStatus
 
             if (modelDownloadStatus.isDownloaded) {
                 if (downloadingModelId == model.id) {
                     downloadingModelId = null
+                    downloadingModelFileName = null
                 }
                 break
             }
@@ -386,6 +396,7 @@ private fun ChatViewModel.startDownloadPolling(model: ModelSpec) {
             if (isFailure) {
                 if (downloadingModelId == model.id) {
                     downloadingModelId = null
+                    downloadingModelFileName = null
                 }
                 break
             }

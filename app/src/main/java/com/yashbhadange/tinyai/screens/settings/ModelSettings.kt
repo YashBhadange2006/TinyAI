@@ -91,6 +91,11 @@ enum class SettingsTab(val title: String) {
     MY_MODELS("My Models")
 }
 
+private data class DownloadedModel(
+    val model: ModelSpec,
+    val status: ModelDownloadStatus
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ModelSettingsScreen(
@@ -183,7 +188,7 @@ fun ModelSettingsScreen(
             getSystemPrompt = { model -> chatViewModel.getSystemPrompt(model) },
             onSystemPromptChange = { model, prompt -> chatViewModel.updateSystemPrompt(model, prompt) },
             getStatus = { model -> chatViewModel.getModelStatus(model) },
-            downloadStatusRevision = chatViewModel.modelDownloadStatus,
+            downloadStatus = chatViewModel.modelDownloadStatus,
             checkIsLoading = { model -> chatViewModel.isLoadingModel(model) },
             checkIsLoaded = { model -> chatViewModel.isLoadedModel(model) },
             onOpenRemoteModelVersions = onOpenRemoteModelVersions,
@@ -212,7 +217,7 @@ fun ModelSettingsContent(
     getSystemPrompt: (ModelSpec) -> String,
     onSystemPromptChange: (ModelSpec, String) -> Unit,
     getStatus: (ModelSpec) -> ModelDownloadStatus,
-    downloadStatusRevision: ModelDownloadStatus? = null,
+    downloadStatus: ModelDownloadStatus,
     checkIsLoading: (ModelSpec) -> Boolean,
     checkIsLoaded: (ModelSpec) -> Boolean,
     onOpenRemoteModelVersions: (HFRemoteModelGroup) -> Unit = {},
@@ -260,9 +265,13 @@ fun ModelSettingsContent(
         }
     }
 
-    val downloadedModels = remember(selectedTab, allKnownModels, downloadStatusRevision) {
+    // `downloadStatus` is the shared status updated by the existing download poller.
+    // It keeps this sibling tab in sync without starting another polling job.
+    val downloadedModels = remember(selectedTab, allKnownModels, downloadStatus) {
         if (selectedTab == SettingsTab.MY_MODELS) {
-            allKnownModels.filter { getStatus(it).isDownloaded }
+            allKnownModels.map { model ->
+                DownloadedModel(model, getStatus(model))
+            }.filter { it.status.isDownloaded || it.status.isDownloading }
         } else {
             emptyList()
         }
@@ -389,7 +398,7 @@ fun ModelSettingsContent(
                     text = if (selectedTab == SettingsTab.EXPLORE) {
                         "Built-in models stay local, and LiteRT community models are fetched from Hugging Face."
                     } else {
-                        "Models downloaded to your device storage that are ready to load."
+                        "Models downloading to, or downloaded on, your device storage."
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -457,7 +466,7 @@ fun ModelSettingsContent(
                         items(filteredBuiltInModels, key = { it.id }) { model ->
                             ModelItemRow(
                                 model = model,
-                                status = getStatus(model),
+                                status = { getStatus(model) },
                                 systemPrompt = getSystemPrompt(model),
                                 modifier = Modifier.fillParentMaxWidth(modelCardWidthFraction),
                                 onDownload = { onDownload(model) },
@@ -540,10 +549,11 @@ fun ModelSettingsContent(
                     }
                 }
             } else {
-                items(downloadedModels, key = { it.id }) { model ->
+                items(downloadedModels, key = { it.model.id }) { downloadedModel ->
+                    val model = downloadedModel.model
                     ModelItemRow(
                         model = model,
-                        status = getStatus(model),
+                        status = downloadedModel.status,
                         systemPrompt = getSystemPrompt(model),
                         onDownload = { onDownload(model) },
                         onDelete = { onDelete(model) },
@@ -607,6 +617,12 @@ private fun ModelSettingsPreview() {
                     )
                 }
             },
+            downloadStatus = ModelDownloadStatus(
+                isDownloaded = false,
+                isDownloading = false,
+                progressPercent = null,
+                statusMessage = "Not downloaded"
+            ),
             checkIsLoading = { false },
             checkIsLoaded = { false },
             onDownload = {},

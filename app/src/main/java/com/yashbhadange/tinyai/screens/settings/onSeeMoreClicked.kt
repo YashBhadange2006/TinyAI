@@ -63,7 +63,7 @@ fun OnSeeMoreClicked(
             items(modelsList,key = { it.id }){ model ->
                 ModelItemRow(
                     model = model,
-                    status = getStatus(model),
+                    status = { getStatus(model) },
                     systemPrompt = getSystemPrompt(model),
                     modifier = Modifier.fillParentMaxWidth(0.85f), // responsively handle Card layout, 85% of any size of screen
                     onDownload = { onDownload(model) },

@@ -17,6 +17,9 @@ import com.yashbhadange.tinyai.data.api.ModelFormat
 import com.yashbhadange.tinyai.data.database.AppDatabase
 import com.yashbhadange.tinyai.data.database.ChatSession
 import com.yashbhadange.tinyai.data.storage.MediaStorage
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 class ChatViewModel(application: Application) : AndroidViewModel(application) {
     internal companion object {
@@ -36,6 +39,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     internal var loadedModelId: String? = null
     internal var loadedSessionId: Long? = null
     internal var downloadingModelId: String? = null
+    internal var downloadingModelFileName: String? = null
     internal var loadingModelId: String? = null
 
     var currentSessionId by mutableStateOf<Long?>(null)
@@ -58,6 +62,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     var isModelLoaded by mutableStateOf(false)
         internal set
+
+    internal val _downloadProgress = MutableStateFlow(downloader.getDownloadStatus(activeModel))
+    val downloadProgress: StateFlow<com.yashbhadange.tinyai.ai.ModelDownloadStatus> = _downloadProgress.asStateFlow()
 
     var modelDownloadStatus by mutableStateOf(downloader.getDownloadStatus(activeModel))
         internal set

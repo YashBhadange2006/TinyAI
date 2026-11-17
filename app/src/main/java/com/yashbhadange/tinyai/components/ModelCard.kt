@@ -49,6 +49,7 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -236,7 +237,7 @@ private fun ModelIcon(modelName: String) {
 @Composable
 fun ModelItemRow(
     model: ModelSpec,
-    status: ModelDownloadStatus,
+    status: () -> ModelDownloadStatus,
     systemPrompt: String,
     isGpuEnabled: Boolean,
     modifier: Modifier = Modifier,
@@ -250,13 +251,8 @@ fun ModelItemRow(
     isLoaded: Boolean,
     showSize: Boolean = true,
 ) {
-
-    var isExpanded by remember { mutableStateOf(false)}
-
-    val arrowRotationState by animateFloatAsState(
-        targetValue = if(isExpanded) 180f else 0f,
-        label ="ArrowRotation"
-    )
+    val currentStatus = status()
+    val advancedSettingsExpanded = remember { mutableStateOf(false) }
 
     val gradientBrush = Brush.linearGradient(
         colors = listOf(
@@ -299,8 +295,8 @@ fun ModelItemRow(
                 shape = RoundedCornerShape(28.dp)
             ),
         onClick = {
-            if (status.isDownloaded) {
-                isExpanded = !isExpanded
+            if (currentStatus.isDownloaded) {
+                advancedSettingsExpanded.value = !advancedSettingsExpanded.value
             }
         }
     ) {
@@ -367,7 +363,7 @@ fun ModelItemRow(
                         lineHeight = 18.sp
                     )
 
-                    if (!status.isDownloading && showSize) {
+                    if (!currentStatus.isDownloading && showSize) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically
@@ -392,7 +388,7 @@ fun ModelItemRow(
             }
 
             // Middle Section: Linear Download Progress Indicator (if downloading)
-            if (status.isDownloading) {
+            if (currentStatus.isDownloading) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -407,13 +403,13 @@ fun ModelItemRow(
                             fontWeight = FontWeight.SemiBold
                         )
                         Text(
-                            text = "${status.progressPercent ?: 0}%",
+                            text = "${currentStatus.progressPercent ?: 0}%",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold
                         )
                     }
                     LinearProgressIndicator(
-                        progress = { ((status.progressPercent ?: 0).coerceIn(0, 100)) / 100f },
+                        progress = { ((currentStatus.progressPercent ?: 0).coerceIn(0, 100)) / 100f },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(6.dp)
@@ -425,7 +421,7 @@ fun ModelItemRow(
             }
 
             when {
-                status.isDownloading -> {
+                currentStatus.isDownloading -> {
                     Button(
                         onClick = {},
                         enabled = false,
@@ -435,148 +431,19 @@ fun ModelItemRow(
                         Text("Downloading...", fontWeight = FontWeight.SemiBold)
                     }
                 }
-                status.isDownloaded -> {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Button(
-                            onClick = if (isLoaded) onUnload else onLoad,
-                            enabled = !isLoading,
-                            shape = RoundedCornerShape(16.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                            ),
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text(
-                                text = when {
-                                    isLoading -> "Loading..."
-                                    isLoaded -> "Unload"
-                                    else -> "Chat Now"
-                                },
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
-
-                        IconButton(
-                            onClick = onDelete,
-                            modifier = Modifier
-                                .size(40.dp)
-                                .background(
-                                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.15f),
-                                    shape = CircleShape
-                                )
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.DeleteOutline,
-                                contentDescription = "Delete Model",
-                                tint = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                    }
-
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .animateContentSize(
-                                animationSpec = tween(
-                                    durationMillis = 300,
-                                    easing = LinearOutSlowInEasing
-                                )
-                            )
-                    ){
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .clickable {
-                                    isExpanded = !isExpanded
-                                }
-                                .padding(vertical = 8.dp, horizontal = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center,
-                        ){
-                            Text(
-                                text = "Advance Settings",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-
-                            Icon(
-                                imageVector = Icons.Default.KeyboardArrowDown,
-                                contentDescription = "Expand/Collapse",
-                                modifier = Modifier.rotate(arrowRotationState)
-                            )
-                        }
-                        if(isExpanded){
-
-                            Text("Processing Mode",
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.padding(top = 8.dp, bottom = 6.dp)
-                            )
-
-                            SingleChoiceSegmentedButtonRow(
-                                modifier = Modifier
-                                    .width(210.dp)
-                                    .padding(vertical = 8.dp)
-                            ) {
-                                SegmentedButton(
-                                    selected = !isGpuEnabled,
-                                    onClick = {onGpuToggle(false)},
-                                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
-                                ) {
-                                    Text("CPU")
-                                }
-
-                                SegmentedButton(
-                                    selected = isGpuEnabled,
-                                    onClick = {onGpuToggle(true)},
-                                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
-                                ) {
-                                    Text("GPU")
-                                }
-                            }
-                            Text(
-                                text = "System Prompt:",
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.padding(top = 8.dp, bottom = 6.dp)
-                            )
-
-                            OutlinedTextField(
-                                value = systemPrompt,
-                                onValueChange = onSystemPromptChange,
-
-                                modifier = Modifier.fillMaxWidth(),
-                                enabled = true,
-                                placeholder = {Text(
-                                    "Enter your system prompt",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                ) },
-                                shape = RoundedCornerShape(25.dp),
-                                singleLine = false,
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    // Transparent border
-                                    focusedBorderColor = Color.Transparent,
-                                    unfocusedBorderColor = Color.Transparent,
-                                    disabledBorderColor = Color.Transparent,
-                                    // Grey container background inside search bar
-                                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                                    // icon matching theme color
-                                    focusedLeadingIconColor = MaterialTheme.colorScheme.onSurface,
-                                    unfocusedLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    focusedTrailingIconColor = MaterialTheme.colorScheme.onSurface,
-                                    unfocusedTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            )
-
-                        }
-                    }
+                currentStatus.isDownloaded -> {
+                    DownloadedModelActions(
+                        expandedState = advancedSettingsExpanded,
+                        isGpuEnabled = isGpuEnabled,
+                        systemPrompt = systemPrompt,
+                        isLoading = isLoading,
+                        isLoaded = isLoaded,
+                        onLoad = onLoad,
+                        onUnload = onUnload,
+                        onDelete = onDelete,
+                        onGpuToggle = onGpuToggle,
+                        onSystemPromptChange = onSystemPromptChange
+                    )
                 }
                 else -> {
                     Button(
@@ -602,6 +469,190 @@ fun ModelItemRow(
             }
         }
     }
+}
+
+@Composable
+private fun DownloadedModelActions(
+    expandedState: MutableState<Boolean>,
+    isGpuEnabled: Boolean,
+    systemPrompt: String,
+    isLoading: Boolean,
+    isLoaded: Boolean,
+    onLoad: () -> Unit,
+    onUnload: () -> Unit,
+    onDelete: () -> Unit,
+    onGpuToggle: (Boolean) -> Unit,
+    onSystemPromptChange: (String) -> Unit
+) {
+    val isExpanded by expandedState
+    val arrowRotationState by animateFloatAsState(
+        targetValue = if (isExpanded) 180f else 0f,
+        label = "ArrowRotation"
+    )
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Button(
+            onClick = if (isLoaded) onUnload else onLoad,
+            enabled = !isLoading,
+            shape = RoundedCornerShape(16.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+            ),
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(
+                text = when {
+                    isLoading -> "Loading..."
+                    isLoaded -> "Unload"
+                    else -> "Chat Now"
+                },
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+
+        IconButton(
+            onClick = onDelete,
+            modifier = Modifier
+                .size(40.dp)
+                .background(
+                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.15f),
+                    shape = CircleShape
+                )
+        ) {
+            Icon(
+                imageVector = Icons.Default.DeleteOutline,
+                contentDescription = "Delete Model",
+                tint = MaterialTheme.colorScheme.error,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .animateContentSize(
+                animationSpec = tween(
+                    durationMillis = 300,
+                    easing = LinearOutSlowInEasing
+                )
+            )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .clickable { expandedState.value = !expandedState.value }
+                .padding(vertical = 8.dp, horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = "Advance Settings",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Icon(
+                imageVector = Icons.Default.KeyboardArrowDown,
+                contentDescription = "Expand/Collapse",
+                modifier = Modifier.rotate(arrowRotationState)
+            )
+        }
+
+        if (isExpanded) {
+            Text(
+                text = "Processing Mode",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(top = 8.dp, bottom = 6.dp)
+            )
+            SingleChoiceSegmentedButtonRow(
+                modifier = Modifier
+                    .width(210.dp)
+                    .padding(vertical = 8.dp)
+            ) {
+                SegmentedButton(
+                    selected = !isGpuEnabled,
+                    onClick = { onGpuToggle(false) },
+                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
+                ) { Text("CPU") }
+                SegmentedButton(
+                    selected = isGpuEnabled,
+                    onClick = { onGpuToggle(true) },
+                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
+                ) { Text("GPU") }
+            }
+            Text(
+                text = "System Prompt:",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(top = 8.dp, bottom = 6.dp)
+            )
+            OutlinedTextField(
+                value = systemPrompt,
+                onValueChange = onSystemPromptChange,
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = {
+                    Text(
+                        text = "Enter your system prompt",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                },
+                shape = RoundedCornerShape(25.dp),
+                singleLine = false,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color.Transparent,
+                    unfocusedBorderColor = Color.Transparent,
+                    disabledBorderColor = Color.Transparent,
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                    focusedLeadingIconColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    focusedTrailingIconColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            )
+        }
+    }
+}
+
+@Composable
+fun ModelItemRow(
+    model: ModelSpec,
+    status: ModelDownloadStatus,
+    systemPrompt: String,
+    isGpuEnabled: Boolean,
+    modifier: Modifier = Modifier,
+    onDownload: () -> Unit,
+    onDelete: () -> Unit,
+    onLoad: () -> Unit,
+    onUnload: () -> Unit,
+    onSystemPromptChange: (String) -> Unit,
+    onGpuToggle: (Boolean) -> Unit,
+    isLoading: Boolean,
+    isLoaded: Boolean,
+    showSize: Boolean = true,
+) {
+    ModelItemRow(
+        model = model,
+        status = { status },
+        systemPrompt = systemPrompt,
+        isGpuEnabled = isGpuEnabled,
+        modifier = modifier,
+        onDownload = onDownload,
+        onDelete = onDelete,
+        onLoad = onLoad,
+        onUnload = onUnload,
+        onSystemPromptChange = onSystemPromptChange,
+        onGpuToggle = onGpuToggle,
+        isLoading = isLoading,
+        isLoaded = isLoaded,
+        showSize = showSize
+    )
 }
 
 @Preview(name = "Light Mode", showBackground = true)
