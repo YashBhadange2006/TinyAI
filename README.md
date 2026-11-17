@@ -101,7 +101,7 @@ Most AI chat apps route every message through a cloud API. TinyAI does the oppos
 | Multi-session chat history   | Yes       |
 | Per-model system prompts     | Yes       |
 | Markdown + LaTeX rendering   | Yes       |
-| GGUF model support           | No        |
+| GGUF model support           | Yes       |
 | Cloud sync                   | No        |
 
 ## Supported Model Formats
@@ -110,6 +110,7 @@ Most AI chat apps route every message through a cloud API. TinyAI does the oppos
 |------------------|-------------|
 | MediaPipe GenAI  | `.task`     |
 | LiteRT-LM        | `.litertlm` |
+| GGUF             | `.gguf` |
 
 ## Tech Stack
 
